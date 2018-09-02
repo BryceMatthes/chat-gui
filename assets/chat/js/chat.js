@@ -442,7 +442,7 @@ class Chat {
 
     withWhispers(){
         if(this.authenticated) {
-            $.ajax({url: `${API_URI}/api/messages/unread`})
+            $.ajax({url: `/api/messages/unread`})
                 .done(d => d.forEach(e => this.whispers.set(e['username'].toLowerCase(), {
                     id: e['messageid'],
                     nick: e['username'],
@@ -462,7 +462,7 @@ class Chat {
     saveSettings(){
         if(this.authenticated){
             if(this.settings.get('profilesettings')) {
-                $.ajax({url: `${API_URI}/api/chat/me/settings`, method:'post', data: JSON.stringify([...this.settings])});
+                $.ajax({url: `/api/chat/me/settings`, method:'post', data: JSON.stringify([...this.settings])});
             } else {
                 ChatStore.write('chat.settings', this.settings);
             }
@@ -882,7 +882,7 @@ class Chat {
             if(win)
                 MessageBuilder.historical(data.data, user, data.timestamp).into(this, win)
             if(win === this.getActiveWindow())
-                $.ajax({url: `${API_URI}/api/messages/msg/${messageid}/open`, method:'post'})
+                $.ajax({url: `/api/messages/msg/${messageid}/open`, method:'post'})
             else
                 conv.unread++
             this.menus.get('whisper-users').redraw()
@@ -1141,7 +1141,7 @@ class Chat {
         this.busystalk = true;
         const limit = parts[1] ? parseInt(parts[1]) : 3;
         MessageBuilder.info(`Getting messages for ${[parts[0]]} ...`).into(this);
-        $.ajax({timeout:5000, url: `${API_URI}/api/chat/stalk?username=${encodeURIComponent(parts[0])}&limit=${limit}`})
+        $.ajax({timeout:5000, url: `/api/chat/stalk?username=${encodeURIComponent(parts[0])}&limit=${limit}`})
             .always(() => {
                 this.nextallowedstalk = moment().add(10, 'seconds');
                 this.busystalk = false;
@@ -1180,7 +1180,7 @@ class Chat {
         this.busymentions = true;
         const limit = parts[1] ? parseInt(parts[1]) : 3;
         MessageBuilder.info(`Getting mentions for ${[parts[0]]} ...`).into(this);
-        $.ajax({timeout:5000, url: `${API_URI}/api/chat/mentions?username=${encodeURIComponent(parts[0])}&limit=${limit}`})
+        $.ajax({timeout:5000, url: `/api/chat/mentions?username=${encodeURIComponent(parts[0])}&limit=${limit}`})
             .always(() => {
                 this.nextallowedmentions = moment().add(10, 'seconds');
                 this.busymentions = false;
@@ -1256,7 +1256,7 @@ class Chat {
 
     cmdBANINFO(){
         MessageBuilder.info('Loading ban info ...').into(this);
-        $.ajax({url:`${API_URI}/api/chat/me/ban`})
+        $.ajax({url:`/api/chat/me/ban`})
             .done(d => {
                 if(d === 'bannotfound') {
                     MessageBuilder.info(`You have no active bans. Thank you.`).into(this);
@@ -1314,7 +1314,7 @@ class Chat {
                     `or close them from the whispers menu.\r`+
                     `Loading messages ...`*/
                 ).into(this, win)
-                $.ajax({url: `${API_URI}/api/messages/usr/${encodeURIComponent(user.nick)}/inbox`})
+                $.ajax({url: `/api/messages/usr/${encodeURIComponent(user.nick)}/inbox`})
                     .fail(() => MessageBuilder.error(`Failed to load messages :(`).into(this, win))
                     .done(data => {
                         if(data.length > 0) {

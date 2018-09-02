@@ -1,5 +1,15 @@
 
 // animation additions
+
+
+.chat-emote.chat-emote-SourPls {
+  width: 32px;
+  height: 32px;
+  margin-top: -32px;
+  background: url('../../emotes/emoticons-animated/SourPls.gif');
+}
+
+
 .chat-emote.chat-emote-NOBULLY:hover {
   -webkit-filter: invert(100%);
   filter: invert(100%);
