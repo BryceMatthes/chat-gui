@@ -142,7 +142,7 @@ class ChatSettingsMenu extends ChatMenu {
             switch(name){
                 case 'profilesettings':
                     if(!val && this.chat.authenticated)
-                        $.ajax({url: `${API_URI}/api/chat/me/settings`, method:'delete'})
+                        $.ajax({url: '/api/chat/me/settings', method:'delete'})
                     break;
                 case 'notificationwhisper':
                 case 'notificationhighlight':
@@ -219,7 +219,7 @@ class ChatUserMenu extends ChatMenu {
         this.chat.source.on('JOIN', data => this.addAndRedraw(data.nick));
         this.chat.source.on('QUIT', data => this.removeAndRedraw(data.nick));
         this.chat.source.on('NAMES', data => this.addAll());
-        this.searchinput.on('keyup', debounce(100, () => {
+        this.searchinput.on('keyup', debounce(100, false, () => {
             this.searchterm = this.searchinput.val();
             this.filter();
             this.redraw();
@@ -325,10 +325,8 @@ class ChatEmoteMenu extends ChatMenu {
 
     constructor(ui, btn, chat) {
         super(ui, btn, chat);
-        this.temotes = this.ui.find('#twitch-emotes');
         this.demotes = this.ui.find('#destiny-emotes');
         this.demotes.append([...this.chat.emoticons].map(buildEmote).join(''));
-        this.temotes.append([...this.chat.twitchemotes].map(buildEmote).join(''));
         this.ui.on('click', '.chat-emote', e => {
             ChatMenu.closeMenus(chat);
             this.selectEmote(e.currentTarget.innerText);
