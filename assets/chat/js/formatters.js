@@ -21,10 +21,11 @@ class EmoteFormatter {
             const emoticons = [
                 ...chat.emoticons,
                 ...chat.twitchemotes,
+		...chat.bbdggemotes,
             ].join('|');
             this.regex = new RegExp(`(^|\\s)(${emoticons})(?=$|\\s)`, 'gm');
         }
-        return str.replace(this.regex, '$1<div title="$2" class="chat-emote chat-emote-$2">$2 </div>');
+        return str.replace(this.regex, '$1<div title="$2" class="emote $2">$2 </div>');
     }
 
 }
@@ -135,3 +136,4 @@ export {
     MentionedUserFormatter,
     UrlFormatter
 }
+

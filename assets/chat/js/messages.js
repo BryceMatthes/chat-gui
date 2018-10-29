@@ -81,7 +81,7 @@ function buildFeatures(user){
         })
         .map(e => {
             const f = UserFeatures.valueOf(e);
-            return `<i class="flair icon-${e.toLowerCase()}" title="${f !== null ? f.label : e}"></i>`;
+            return `<i class="flair ${e.toLowerCase()}" title="${f !== null ? f.label : e}"></i>`;
         })
         .join('');
     return features.length > 0 ? `<span class="features">${features}</span>` : '';
