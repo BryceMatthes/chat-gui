@@ -149,8 +149,8 @@ class Chat {
         this.backlogloading = false;
         this.unresolved = [];
         this.emoticons = new Set();
-	this.bbdggemotes = new Set();
-	this.twitchemotes = new Set();
+        this.bbdggemotes = new Set();
+        this.twitchemotes = new Set();
         this.user = new ChatUser();
         this.users = new Map();
         this.whispers = new Map();
@@ -295,7 +295,6 @@ class Chat {
             (a['alias'] || []).forEach(k => this.autocomplete.add(`/${k}`))
         });
         this.emoticons.forEach(e => this.autocomplete.add(e, true))
-	this.bbdggemotes.forEach(e => this.autocomplete.add(e, true))
         this.autocomplete.bind(this)
         this.applySettings(false)
 
@@ -414,7 +413,8 @@ class Chat {
     }
 
     withEmotes(emotes) {
-        this.emoticons = new Set(emotes['destiny']);
+        let allEmotes = emotes['destiny'].concat(emotes['bbdgg'])
+        this.emoticons = new Set(allEmotes);
         this.bbdggemotes = new Set(emotes['bbdgg']);
         return this;
     }
