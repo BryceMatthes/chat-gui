@@ -21,8 +21,6 @@ module.exports = {
             'font-awesome/scss/font-awesome.scss',
             './assets/chat/js/notification',
             './assets/chat/img/favicon.png',
-            './assets/chat/css/style.scss',
-            './assets/chat/css/bbdgg.scss',
             './assets/chat.js',
         ],
         streamchat: [
@@ -33,9 +31,6 @@ module.exports = {
             'font-awesome/scss/font-awesome.scss',
             './assets/chat/js/notification',
             './assets/chat/img/favicon.png',
-            './assets/chat/css/style.scss',
-            './assets/chat/css/bbdgg.scss',
-            './assets/chat/css/onstream.scss',
             './assets/streamchat.js',
         ],
     },
