@@ -7,13 +7,11 @@ fetch(cdnData.cdn+'/emotes/emotes.json?_='+cdnData.cacheKey)
   .then(function(response) {
     return response.json();
   })
-  .then(function(myJson) {
-	$.each(myJson, function(i, item){
-		emotes['destiny'].push(myJson[i].prefix);});
+  .then(function(emotesJSON) {
+	$.each(emotesJSON, function(i){emotes['destiny'].push(emotesJSON[i].prefix);});
+	$('head').append( $('<link rel="stylesheet" type="text/css" />').attr('href', cdnData.cdn+'/emotes/bbdgg.css') )
 	$('head').append( $('<link rel="stylesheet" type="text/css" />').attr('href', cdnData.cdn+'/emotes/emotes.css?_='+cdnData.cacheKey) )
 	$('head').append( $('<link rel="stylesheet" type="text/css" />').attr('href', cdnData.cdn+'/flairs/flairs.css?_='+cdnData.cacheKey) )
-	$('head').append( $('<link rel="stylesheet" type="text/css" />').attr('href', cdnData.cdn+'/emotes/bbdgg.css') )
-"1541178182461.7682"
 	$.when(
 	    new Promise(res => $.getJSON('/api/chat/me').done(res).fail(() => res(null))),
 	    new Promise(res => $.getJSON('/api/chat/history').done(res).fail(() => res(null)))
