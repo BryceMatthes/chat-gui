@@ -327,7 +327,6 @@ class ChatEmoteMenu extends ChatMenu {
         super(ui, btn, chat);
         this.demotes = this.ui.find('#destiny-emotes');
         this.demotes.append([...this.chat.emoticons].map(buildEmote).join(''));
-		this.demotes.append([...this.chat.bbdggemotes].map(buildEmote).join(''));
         this.ui.on('click', '.emote', e => {
             ChatMenu.closeMenus(chat);
             this.selectEmote(e.currentTarget.innerText);
