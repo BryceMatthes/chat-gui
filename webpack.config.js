@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 require('dotenv').config();
 require('webpack');
 
@@ -5,14 +6,17 @@ const path = require('path');
 const webpack = require('webpack');
 const ExtractTextPlugin = require('extract-text-webpack-plugin');
 const CleanWebpackPlugin = require('clean-webpack-plugin');
+=======
+require('webpack')
+>>>>>>> December-Fixes
 
 module.exports = {
     devServer: {
-        contentBase: path.join(__dirname, "static"),
-        compress: true,
+        contentBase: './demo',
         port: 8282
     },
     entry: {
+<<<<<<< HEAD
         chat: [
             'core-js/es6',
             'jquery',
@@ -47,12 +51,18 @@ module.exports = {
             LOGIN_URI: process.env.LOGIN_URI ? `'${process.env.LOGIN_URI}'` : 'false',
         }),
     ],
+=======
+        demo: './assets/demo.js',
+        chat: './assets/chat.js'
+    },
+>>>>>>> December-Fixes
     watchOptions: {
         ignored: /node_modules/
     },
     module: {
         rules: [
             {
+<<<<<<< HEAD
                 test: /\.(ts|tsx)$/,
                 loader: 'ts-loader'
             },
@@ -95,6 +105,34 @@ module.exports = {
         },
         extensions: ['.ts', '.tsx', '.js']
     },
+=======
+                test: /\.m?js$/,
+                exclude: /(node_modules|)/,
+                loader: 'babel-loader',
+                options: {presets: ['@babel/preset-env']}
+            },
+            {
+                test: /\.(scss|css)$/,
+                use: [
+                    'style-loader',
+                    'css-loader',
+                    'sass-loader',
+                    'postcss-loader',
+                ]
+            },
+            {
+                test: /\.(png|jpg|gif|svg)$/,
+                loader: 'file-loader',
+                options: {name: 'img/[name].[ext]'}
+            },
+            {
+                test: /\.(html)$/,
+                loader: 'html-loader',
+                options: {minimize: true}
+            }
+        ]
+    },
+>>>>>>> December-Fixes
     context: __dirname,
     devtool: false
 };

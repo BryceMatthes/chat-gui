@@ -1,7 +1,12 @@
-/* global $, window, document */
+/* global window, document */
 
+import bbdggEmotes from './../../bbdggEmotes.json'
+
+import {fetch} from 'whatwg-fetch'
+import {Notification} from './notification'
+import $ from 'jquery'
 import {KEYCODES,DATE_FORMATS,isKeyCode} from './const'
-import debounce from 'throttle-debounce/debounce'
+import {debounce} from 'throttle-debounce'
 import moment from 'moment'
 import EventEmitter from './emitter'
 import ChatSource from './source'
@@ -12,7 +17,6 @@ import ChatAutoComplete from './autocomplete'
 import ChatInputHistory from './history'
 import ChatUserFocus from './focus'
 import ChatStore from './store'
-import UserFeatures from './features'
 import Settings from './settings'
 import ChatWindow from './window'
 
@@ -21,6 +25,7 @@ const regexsafe = /[\-\[\]\/{}()*+?.\\^$|]/g
 const nickmessageregex = /(?:(?:^|\s)@?)([a-zA-Z0-9_]{3,20})(?=$|\s|[.?!,])/g
 const nickregex = /^[a-zA-Z0-9_]{3,20}$/
 const nsfwnsfl = new RegExp(`\\b(?:NSFL|NSFW)\\b`, 'i')
+<<<<<<< HEAD
 const tagcolors = [
     'green',
     'yellow',
@@ -33,6 +38,9 @@ const tagcolors = [
     'pink',
     'black'
 ]
+=======
+const tagcolors = ['green', 'yellow', 'orange', 'red', 'purple', 'blue', 'sky', 'lime', 'pink', 'black']
+>>>>>>> December-Fixes
 const errorstrings = new Map([
     ['unknown', 'Unknown error, this usually indicates an internal problem :('],
     ['nopermission', 'You do not have the required permissions to use that'],
@@ -61,8 +69,7 @@ const hintstrings = new Map([
     ['notify', 'Use /msg <username> to send a private message to someone'],
     ['ignoreuser', 'Use /ignore <username> to hide messages from pesky chatters'],
     ['mutespermanent', 'Mutes are never persistent, don\'t worry it will pass!'],
-    ['stalkmentionshint', 'Use the /stalk <nick> or /mentions <nick> to keep up to date'],
-    ['tagshint', `Use the /tag <nick> <color> to highlight users you like. There are preset colors to choose from ${tagcolors.join(', ')}`],
+    ['tagshint', `Use the /tag <nick> [<color> <note>] to tag users you like. There are preset colors to choose from ${tagcolors.join(', ')}`],
     ['bigscreen', `Bigscreen! Did you know you can have the chat on the left or right side of the stream by clicking the swap icon in the top left?`]
 ])
 const settingsdefault = new Map([
@@ -78,6 +85,7 @@ const settingsdefault = new Map([
     ['customhighlight', []],
     ['highlightnicks', []],
     ['taggednicks', []],
+    ['taggednotes', []],
     ['showremoved', 0], // 0 = false (removes), 1 = true (censor), 2 = do nothing
     ['showhispersinchat', false],
     ['ignorenicks', []],
@@ -86,9 +94,11 @@ const settingsdefault = new Map([
     ['ignorementions', false],
     ['autocompletehelper', true],
     ['taggedvisibility', false],
-    ['hidensfw', false]
+    ['hidensfw', false],
+    ['fontscale', 'auto']
 ])
 const commandsinfo = new Map([
+<<<<<<< HEAD
     ['help',            {desc: 'Helpful information.'}],
     ['emotes',          {desc: 'A list of the chats emotes in text form.'}],
     ['me',              {desc: 'A normal message, but emotive.'}],
@@ -110,6 +120,80 @@ const commandsinfo = new Map([
     ['untag',           {desc: 'No longer mark the users messages'}],
     ['exit',            {desc: 'Exit the conversation you are in.'}],
     ['reply',           {desc: 'Reply to the last private message.', alias: ['r']}]
+=======
+    ['help', {
+        desc: 'Helpful information.'
+    }],
+    ['emotes', {
+        desc: 'A list of the chats emotes in text form.'
+    }],
+    ['me', {
+        desc: 'A normal message, but emotive.'
+    }],
+    ['message', {
+        desc: 'Whisper someone',
+        alias: ['msg', 'whisper', 'w', 'tell', 't', 'notify']
+    }],
+    ['ignore', {
+        desc: 'No longer see user messages, without <nick> to list the nicks ignored'
+    }],
+    ['unignore', {
+        desc: 'Remove a user from your ignore list'
+    }],
+    ['highlight', {
+        desc: 'Highlights target nicks messages for easier visibility'
+    }],
+    ['unhighlight', {
+        desc: 'Unhighlight target nick'
+    }],
+    ['maxlines', {
+        desc: 'The maximum number of lines the chat will store'
+    }],
+    ['mute', {
+        desc: 'The users messages will be blocked from everyone.',
+        admin: true
+    }],
+    ['unmute', {
+        desc: 'Unmute the user.',
+        admin: true
+    }],
+    ['subonly', {
+        desc: 'Subscribers only',
+        admin: true
+    }],
+    ['ban', {
+        desc: 'User will no longer be able to connect to the chat.',
+        admin: true
+    }],
+    ['unban', {
+        desc: 'Unban a user',
+        admin: true
+    }],
+    ['timestampformat', {
+        desc: 'Set the time format of the chat.'
+    }],
+    ['tag', {
+        desc: 'Mark a users messages'
+    }],
+    ['untag', {
+        desc: 'No longer mark the users messages'
+    }],
+    ['exit', {
+        desc: 'Exit the conversation you are in.'
+    }],
+    ['reply', {
+        desc: 'Reply to the last private message.',
+        alias: ['r']
+    }],
+    ['stalk', {
+        desc: 'Return a list of messages from <nick>',
+        alias: ['s']
+    }],
+    ['mentions', {
+        desc: 'Return a list of messages where <nick> is mentioned',
+        alias: ['m']
+    }],
+>>>>>>> December-Fixes
 ])
 const banstruct = {
     id: 0,
@@ -122,6 +206,7 @@ const banstruct = {
     starttimestamp: '',
     endtimestamp: ''
 }
+<<<<<<< HEAD
 const debounceFocus = debounce(10, false, c => c.input.focus())
 const focusIfNothingSelected = chat => {
     if(window.getSelection().isCollapsed && !chat.input.is(':focus')) {
@@ -138,6 +223,18 @@ const extractHostname = (url) => {
 class Chat {
 
     constructor(){
+=======
+
+class Chat {
+
+    constructor(config){
+        this.config = Object.assign({}, {
+            url: '',
+            api: {base: ''},
+            cdn: {base: ''},
+            cacheKey: ''
+        }, config)
+>>>>>>> December-Fixes
         this.ui = null;
         this.css = null;
         this.output = null;
@@ -148,17 +245,37 @@ class Chat {
         this.authenticated = false;
         this.backlogloading = false;
         this.unresolved = [];
+<<<<<<< HEAD
         this.emoticons = new Set();
         this.bbdggemotes = new Set();
         this.twitchemotes = new Set();
+=======
+
+        this.flairs = new Set();
+        this.emotes = new Set();
+        this.flairsMap = new Map();
+        this.emotesMap = new Map();
+        this.emotePrefixes = new Set();
+        this.emoteRegexNormal = null;
+        this.emoteRegexTwitch = null;
+
+>>>>>>> December-Fixes
         this.user = new ChatUser();
         this.users = new Map();
         this.whispers = new Map();
         this.windows = new Map();
+<<<<<<< HEAD
         this.settings = new Map([...settingsdefault]);
         this.autocomplete = new ChatAutoComplete();
         this.menus = new Map();
         this.taggednicks = new Map();
+=======
+        this.settings = new Map(settingsdefault);
+        this.autocomplete = new ChatAutoComplete();
+        this.menus = new Map();
+        this.taggednicks = new Map();
+        this.taggednotes = new Map();
+>>>>>>> December-Fixes
         this.ignoring = new Set();
         this.mainwindow = null;
         this.regexhighlightcustom = null;
@@ -222,10 +339,16 @@ class Chat {
         this.control.on('TELL', data => this.cmdWHISPER(data));
         this.control.on('T', data => this.cmdWHISPER(data));
         this.control.on('NOTIFY', data => this.cmdWHISPER(data));
+<<<<<<< HEAD
+=======
+        this.control.on('R', data => this.cmdREPLY(data));
+        this.control.on('REPLY', data => this.cmdREPLY(data));
+>>>>>>> December-Fixes
         this.control.on('MENTIONS', data => this.cmdMENTIONS(data));
         this.control.on('M', data => this.cmdMENTIONS(data));
         this.control.on('STALK', data => this.cmdSTALK(data));
         this.control.on('S', data => this.cmdSTALK(data));
+<<<<<<< HEAD
         this.control.on('R', data => this.cmdREPLY(data));
         this.control.on('REPLY', data => this.cmdREPLY(data));
     }
@@ -238,65 +361,93 @@ class Chat {
     withUser(user){
         this.user = this.addUser(user || {nick: 'Anonymous'});
         this.authenticated = this.user !== null && this.user.username !== '' && this.user.username !== 'Anonymous';
+=======
+>>>>>>> December-Fixes
         return this;
     }
 
-    withSettings(settings){
+    setUser(user){
+        if (!user || user.username === '') {
+            this.user = this.addUser({nick: 'User' + Math.floor(Math.random() * (99999 - 10000 + 1)) + 10000})
+            this.authenticated = false
+        } else {
+            this.user = this.addUser(user)
+            this.authenticated = true
+        }
+        // TODO move this
+        if (this.authenticated) {
+            this.input.focus().attr('placeholder', `Write something ${this.user.username} ...`)
+        }
+        return this
+    }
+
+    setSettings(settings){
         // If authed and #settings.profilesettings=true use #settings
         // Else use whats in LocalStorage#chat.settings
-        let stored = settings !== null && this.authenticated && settings.get('profilesettings') ? settings : new Map(ChatStore.read('chat.settings') || []);
+        let stored = settings !== null && this.authenticated && settings.get('profilesettings') ? settings : new Map(ChatStore.read('chat.settings') || [])
 
         // Loop through settings and apply any settings found in the #stored data
         if(stored.size > 0) {
             [...this.settings.keys()]
                 .filter(k => stored.get(k) !== undefined && stored.get(k) !== null)
-                .forEach(k => this.settings.set(k, stored.get(k)));
+                .forEach(k => this.settings.set(k, stored.get(k)))
         }
         // Upgrade if schema is out of date
         const oldversion = stored.has('schemaversion') ? parseInt(stored.get('schemaversion')): -1;
-        const newversion = settingsdefault.get('schemaversion');
+        const newversion = settingsdefault.get('schemaversion')
         if(oldversion !== -1 && newversion > oldversion) {
             Settings.upgrade(this, oldversion, newversion)
             this.settings.set('schemaversion', newversion)
             this.saveSettings()
         }
 
-        this.taggednicks = new Map(this.settings.get('taggednicks'));
-        this.ignoring = new Set(this.settings.get('ignorenicks'));
-        return this;
+        this.taggednicks = new Map(this.settings.get('taggednicks'))
+        this.taggednotes = new Map(this.settings.get('taggednotes'))
+        this.ignoring = new Set(this.settings.get('ignorenicks'))
+        return this.applySettings(false)
     }
 
-    withGui(){
-        this.ui             = $('#chat')
-        this.css            = $('#chat-styles')[0]['sheet']
-        this.ishidden       = (document['visibilityState'] || 'visible') !== 'visible'
-        this.output         = this.ui.find('#chat-output-frame')
-        this.input          = this.ui.find('#chat-input-control')
-        this.loginscrn      = this.ui.find('#chat-login-screen')
-        this.loadingscrn    = this.ui.find('#chat-loading')
-        this.windowselect   = this.ui.find('#chat-windows-select')
-        this.inputhistory   = new ChatInputHistory(this)
-        this.userfocus      = new ChatUserFocus(this, this.css)
-        this.mainwindow     = new ChatWindow('main').into(this)
+    withGui(template, appendTo = null){
+
+        this.ui = $(template)
+        this.ui.prependTo(appendTo || 'body')
+
+        // We use this style sheet to apply GUI updates via css (e.g. user focus)
+        this.css = (() => {
+            const link = document.createElement('style');
+            link.id = 'chat-styles'
+            link.type = 'text/css'
+            document.getElementsByTagName('head')[0].appendChild(link);
+            return link['sheet']
+        })()
+
+        this.ishidden = (document['visibilityState'] || 'visible') !== 'visible'
+        this.output = this.ui.find('#chat-output-frame')
+        this.input = this.ui.find('#chat-input-control')
+        this.loginscrn = this.ui.find('#chat-login-screen')
+        this.loadingscrn = this.ui.find('#chat-loading')
+        this.windowselect = this.ui.find('#chat-windows-select')
+        this.inputhistory = new ChatInputHistory(this)
+        this.userfocus = new ChatUserFocus(this, this.css)
+        this.mainwindow = new ChatWindow('main').into(this)
 
         this.windowToFront('main')
 
-        this.menus.set('settings',
-            new ChatSettingsMenu(this.ui.find('#chat-settings'), this.ui.find('#chat-settings-btn'), this))
-        this.menus.set('emotes',
-            new ChatEmoteMenu(this.ui.find('#chat-emote-list'), this.ui.find('#chat-emoticon-btn'), this))
-        this.menus.set('users',
-            new ChatUserMenu(this.ui.find('#chat-user-list'), this.ui.find('#chat-users-btn'), this))
-        this.menus.set('whisper-users',
-            new ChatWhisperUsers(this.ui.find('#chat-whisper-users'), this.ui.find('#chat-whisper-btn'), this))
+        this.menus.set('settings', new ChatSettingsMenu(this.ui.find('#chat-settings'), this.ui.find('#chat-settings-btn'), this))
+        this.menus.set('emotes', new ChatEmoteMenu(this.ui.find('#chat-emote-list'), this.ui.find('#chat-emoticon-btn'), this))
+        this.menus.set('users', new ChatUserMenu(this.ui.find('#chat-user-list'), this.ui.find('#chat-users-btn'), this))
+        this.menus.set('whisper-users', new ChatWhisperUsers(this.ui.find('#chat-whisper-users'), this.ui.find('#chat-whisper-btn'), this))
 
         commandsinfo.forEach((a, k) => {
             this.autocomplete.add(`/${k}`);
             (a['alias'] || []).forEach(k => this.autocomplete.add(`/${k}`))
         });
+<<<<<<< HEAD
         this.emoticons.forEach(e => this.autocomplete.add(e, true))
+=======
+
+>>>>>>> December-Fixes
         this.autocomplete.bind(this)
-        this.applySettings(false)
 
         // Chat input
         this.input.on('keypress', e => {
@@ -315,12 +466,12 @@ class Chat {
             if(downinoutput) {
                 downinoutput = false
                 ChatMenu.closeMenus(this)
-                focusIfNothingSelected(this)
+                this.focusIfNothingSelected()
             }
         })
         this.ui.on('click', '#chat-tools-wrap',() => {
             ChatMenu.closeMenus(this)
-            focusIfNothingSelected(this)
+            this.focusIfNothingSelected()
         })
 
         // ESC
@@ -332,7 +483,7 @@ class Chat {
         document.addEventListener('visibilitychange', debounce(100, false, () => {
             this.ishidden = (document['visibilityState'] || 'visible') !== 'visible'
             if(!this.ishidden)
-                focusIfNothingSelected(this)
+                this.focusIfNothingSelected()
             else
                 ChatMenu.closeMenus(this)
         }), true)
@@ -342,7 +493,7 @@ class Chat {
         const onresizecomplete = debounce(100, false, () => {
             resizing = false
             this.getActiveWindow().unlock()
-            focusIfNothingSelected(this)
+            this.focusIfNothingSelected()
         })
         const onresize = () => {
             if(!resizing) {
@@ -355,7 +506,7 @@ class Chat {
         window.addEventListener('resize', onresize, false)
 
         // Chat user whisper tabs
-        this.windowselect.on('click', '.fa-close', e => {
+        this.windowselect.on('click', '.tab-close', e => {
             ChatMenu.closeMenus(this)
             this.removeWindow($(e.currentTarget).parent().data('name').toLowerCase())
             this.input.focus()
@@ -380,7 +531,7 @@ class Chat {
         // Login
         this.loginscrn.on('click', '#chat-btn-login', () => {
             this.loginscrn.hide()
-            try { window.top.showLoginModal() } catch(e){
+            try { window.top['showLoginModal']() } catch(e){
                 const uri = location.protocol+'//'+location.hostname+(location.port ? ':'+location.port: '')
                 try {
                     if(window.self === window.top){
@@ -402,24 +553,108 @@ class Chat {
             return false
         })
 
-        // Keep the website session alive.
-        setInterval(() => $.ajax({url: '/ping'}), 10*60*1000)
-
         this.loadingscrn.fadeOut(250, () => this.loadingscrn.remove())
         this.mainwindow.updateAndPin()
-        this.input.focus()
-        this.input.focus().attr('placeholder', this.authenticated ? `Write something ${this.user.username} ...` : 'You need to be signed in to chat.')
-        return this
+
+        this.input.focus().attr('placeholder', `Write something ...`)
+        MessageBuilder.status(`Welcome to DGG chat`).into(this)
+        return Promise.resolve(this)
     }
 
+    connect() {
+        this.source.connect(this.config.url)
+    }
+
+    async loadUserAndSettings(){
+        return fetch(`${this.config.api.base}/api/chat/me`, {credentials: 'include'})
+            .then(res => res.json())
+            .then(data => {
+                this.setUser(data)
+                this.setSettings(new Map(data.settings))
+            })
+            .catch(() => {
+                this.setUser(null)
+                this.setSettings()
+            })
+    }
+
+<<<<<<< HEAD
     withEmotes(emotes) {
         let allEmotes = emotes['destiny'].concat(emotes['bbdgg'])
         this.emoticons = new Set(allEmotes);
         this.bbdggemotes = new Set(emotes['bbdgg']);
+=======
+    async loadEmotesAndFlairs(){
+        await this.loadEmotes();
+        await this.loadFlairs();
+    }
+
+    async loadEmotes(){
+        Chat.loadCss(`${this.config.cdn.base}/emotes/emotes.css?_=${this.config.cacheKey}`)
+        return fetch(`${this.config.cdn.base}/emotes/emotes.json?_=${this.config.cacheKey}`)
+            .then(res => res.json())
+            .then(json => { this.setEmotes(json) })
+            .catch(() => {})
+    }
+
+    async loadFlairs(){
+        Chat.loadCss(`${this.config.cdn.base}/flairs/flairs.css?_=${this.config.cacheKey}`)
+        return fetch(`${this.config.cdn.base}/flairs/flairs.json?_=${this.config.cacheKey}`)
+            .then(res => res.json())
+            .then(json => { this.setFlairs(json) })
+            .catch(() => {})
+    }
+
+    async loadHistory(){
+        return fetch(`${this.config.api.base}/api/chat/history`)
+            .then(res => res.json())
+            .then(json => { this.setHistory(json) })
+            .catch(() => {})
+    }
+
+    async loadWhispers(){
+        if (this.authenticated) {
+            return fetch(`${this.config.api.base}/api/messages/unread`, {credentials: 'include'})
+                .then(res => res.json())
+                .then(d => {
+                    d.forEach(e => this.whispers.set(e['username'].toLowerCase(), {
+                        id: e['messageid'],
+                        nick: e['username'],
+                        unread: e['unread'],
+                        open: false
+                    }))
+                })
+                .then(() => this.menus.get('whisper-users').redraw())
+                .catch(() => {})
+        }
+    }
+
+    setEmotes(emotes) {
+        this.emotes = emotes;
+	bbdggEmotes["bbdgg"].forEach(function(i){
+		console.log(i);
+		emotes.push({prefix: i})
+	})
+        this.emotesMap = new Map()
+        emotes.forEach(v => this.emotesMap.set(v.prefix, v))
+        const emoticons = emotes.filter(v => !v['twitch']).map(v => v['prefix']).join('|'),
+            twitchemotes = emotes.filter(v => v['twitch']).map(v => v['prefix']).join('|')
+        this.emoteRegexNormal = new RegExp(`(^|\\s)(${emoticons})(?=$|\\s)`, 'gm')
+        this.emoteRegexTwitch = new RegExp(`(^|\\s)(${emoticons}|${twitchemotes})(?=$|\\s)`, 'gm')
+        this.emotePrefixes = new Set([...emotes.map(v => v['prefix'])])
+        this.emotePrefixes.forEach(e => this.autocomplete.add(e, true))
+>>>>>>> December-Fixes
         return this;
     }
 
-    withHistory(history) {
+    setFlairs(flairs) {
+        this.flairs = flairs;
+        this.flairsMap = new Map()
+        flairs.forEach(v => this.flairsMap.set(v.name, v))
+        return this
+    }
+
+    setHistory(history) {
         if(history && history.length > 0) {
             this.backlogloading = true;
             history.forEach(line => this.source.parseAndDispatch({data: line}));
@@ -430,29 +665,14 @@ class Chat {
         return this;
     }
 
-    withWhispers(){
-        if(this.authenticated) {
-            $.ajax({url: '/api/messages/unread'})
-                .done(d => d.forEach(e => this.whispers.set(e['username'].toLowerCase(), {
-                    id: e['messageid'],
-                    nick: e['username'],
-                    unread: e['unread'],
-                    open: false
-                })))
-                .always(() => this.menus.get('whisper-users').redraw())
-        }
-        return this
-    }
-
-    connect(uri) {
-        this.source.connect(uri);
-        return this;
-    }
-
     saveSettings(){
         if(this.authenticated){
             if(this.settings.get('profilesettings')) {
-                $.ajax({url: '/api/chat/me/settings', method:'post', data: JSON.stringify([...this.settings])});
+                fetch(`${this.config.api.base}/api/chat/me/settings`, {
+                    body: JSON.stringify([...this.settings]),
+                    credentials: 'include',
+                    method: 'POST',
+                }).catch(console.warn)
             } else {
                 ChatStore.write('chat.settings', this.settings);
             }
@@ -494,6 +714,13 @@ class Chat {
 
         // Update maxlines
         [...this.windows].forEach(w => w.maxlines = this.settings.get('maxlines'));
+
+        // Font scaling
+        // TODO document.body :(
+        const fontscale = this.settings.get('fontscale') || 'auto'
+        $(document.body).toggleClass(`pref-fontscale`, fontscale !== 'auto')
+        $(document.body).attr('data-fontscale', fontscale)
+        return Promise.resolve(this);
     }
 
     addUser(data){
@@ -511,7 +738,7 @@ class Chat {
     }
 
     addMessage(message, win=null){
-        // Dont add the gui if user is ignored
+        // Don't add the gui if user is ignored
         if (message.type === MessageTypes.USER && this.ignored(message.user.nick, message.message))
             return
 
@@ -520,7 +747,7 @@ class Chat {
         win.lock()
 
         // Break the current combo if this message is not an emote
-        // We dont need to check what type the current message is, we just know that its a new message, so the combo is invalid.
+        // We don't need to check what type the current message is, we just know that its a new message, so the combo is invalid.
         if(win.lastmessage && win.lastmessage.type === MessageTypes.EMOTE && win.lastmessage.emotecount > 1)
             win.lastmessage.completeCombo()
 
@@ -538,8 +765,10 @@ class Chat {
             message.mentioned = Chat.extractNicks(message.message).filter(a => this.users.has(a.toLowerCase()))
             // set tagged state
             message.tag = this.taggednicks.get(message.user.nick.toLowerCase());
-            // set highlighted state if this is not the current users message or a bot, as well as other highlight criteria
-            message.highlighted = !message.isown && !message.user.hasFeature(UserFeatures.BOT) && (
+            // set tagged note
+            message.title = this.taggednotes.get(message.user.nick.toLowerCase()) || '';
+            // set highlighted state
+            message.highlighted = /*this.authenticated && */!message.isown && (
                 // Check current user nick against msg.message (if highlight setting is on)
                 (this.regexhighlightself && this.settings.get('highlight') && this.regexhighlightself.test(message.message)) ||
                 // Check /highlight nicks against msg.nick
@@ -639,7 +868,10 @@ class Chat {
                     this.windowselect.append(`<span title="Destiny GG" data-name="main" class="tab win-main tag-${w.tag} ${w.visible? 'active' :''}"><i class="dgg-icon"></i></span>`)
                 } else {
                     const conv = this.whispers.get(w.name)
-                    this.windowselect.append(`<span title="${w.label}" data-name="${w.name}" class="tab win-${w.name} tag-${w.tag} ${w.visible? 'active' :''} ${conv.unread>0? 'unread' :''}">${w.label} ${conv.unread>0? '('+conv.unread+')': ''} <i class="fa fa-close" title="Close" /></span>`)
+                    this.windowselect.append(`<span title="${w.label}" data-name="${w.name}" class="tab win-${w.name} tag-${w.tag} ${w.visible? 'active' :''} ${conv.unread>0? 'unread' :''}">
+                    <span>${w.label}${conv.unread>0? ' ('+conv.unread+')': ''}</span>
+                    <i class="tab-close" title="Close" />
+                    </span>`)
                 }
             });
         }
@@ -687,6 +919,14 @@ class Chat {
         this.applySettings();
     }
 
+    focusIfNothingSelected() {
+        if (this['debounceFocus'] === undefined) {
+            this['debounceFocus'] = debounce(10, false, c => c.input.focus())
+        }
+        if(window.getSelection().isCollapsed && !this.input.is(':focus')) {
+            this['debounceFocus'](this);
+        }
+    }
 
     /**
      * EVENTS
@@ -714,15 +954,19 @@ class Chat {
     }
 
     onCONNECTING(url){
-        MessageBuilder.status(`Connecting to ${extractHostname(url)} ...`).into(this)
+        if (this.authenticated) {
+            MessageBuilder.status(`Connecting as ${this.user.username} to ${Chat.extractHostname(url)} ...`).into(this)
+        } else {
+            MessageBuilder.status(`Connecting to ${Chat.extractHostname(url)} ...`).into(this)
+        }
     }
 
     onOPEN(){
-        MessageBuilder.status(`Connection established.`).into(this)
+        //MessageBuilder.status(`Connection established.`).into(this)
     }
 
     onNAMES(data){
-        MessageBuilder.info(`Currently serving ${data['connectioncount']||0} connections and ${data['users'].length} users.`).into(this);
+        MessageBuilder.status(`Connected. serving ${data['connectioncount']||0} connections and ${data['users'].length} users.`).into(this);
         if(this.showmotd) {
             this.cmdHINT([Math.floor(Math.random() * hintstrings.size)]);
             this.showmotd = false;
@@ -739,7 +983,7 @@ class Chat {
 
     onMSG(data){
         let textonly = Chat.extractTextOnly(data.data)
-        const isemote = this.emoticons.has(textonly) || this.twitchemotes.has(textonly)
+        const isemote = this.emotePrefixes.has(textonly)
         const win = this.mainwindow
         if(isemote && win.lastmessage !== null && Chat.extractTextOnly(win.lastmessage.message) === textonly){
             if(win.lastmessage.type === MessageTypes.EMOTE) {
@@ -814,7 +1058,16 @@ class Chat {
     }
 
     onBROADCAST(data){
-        MessageBuilder.broadcast(data.data, data.timestamp).into(this)
+        // TODO kind of ... hackey
+        if (data.data === 'reload') {
+            if (!this.backlogloading) {
+                const retryMilli = Math.floor(Math.random() * 4000) + 4000
+                setTimeout(() => window.location.reload(false), retryMilli)
+                MessageBuilder.broadcast(`Restart incoming in ${Math.round(retryMilli/1000)} seconds ...`).into(this)
+            }
+        } else {
+            MessageBuilder.broadcast(data.data, data.timestamp).into(this)
+        }
     }
 
     onPRIVMSGSENT(){
@@ -842,11 +1095,19 @@ class Chat {
             const win = this.getWindow(normalized)
             if(win)
                 MessageBuilder.historical(data.data, user, data.timestamp).into(this, win)
-            if(win === this.getActiveWindow())
-                $.ajax({url: `/api/messages/msg/${messageid}/open`, method:'post'})
-            else
+            if(win === this.getActiveWindow()) {
+                fetch(`${this.config.api.base}/api/messages/msg/${messageid}/open`, {
+                    credentials: 'include',
+                    method: 'POST',
+                }).catch(console.warn)
+            } else {
                 conv.unread++
+<<<<<<< HEAD
             this.replyusername = user.username;
+=======
+            }
+            this.replyusername = user.username
+>>>>>>> December-Fixes
             this.menus.get('whisper-users').redraw()
             this.redrawWindowIndicators()
         }
@@ -894,7 +1155,11 @@ class Chat {
             // MESSAGE
             else {
                 const textonly = (isme ? str.substring(4) : str).trim()
+<<<<<<< HEAD
                 if (this.source.isConnected() && !this.emoticons.has(textonly) && !this.twitchemotes.has(textonly)) {
+=======
+                if (this.source.isConnected() && !this.emotePrefixes.has(textonly)) {
+>>>>>>> December-Fixes
                     // We add the message to the gui immediately
                     // But we will also get the MSG event, so we need to make sure we dont add the message to the gui again.
                     // We do this by storing the message in the unresolved array
@@ -911,7 +1176,11 @@ class Chat {
     }
 
     cmdEMOTES(){
+<<<<<<< HEAD
         MessageBuilder.info(`Available emoticons: ${[...this.emoticons].join(', ')}`).into(this);
+=======
+        MessageBuilder.info(`Available emoticons: ${[...this.emotes.map(v => v['prefix'])].join(', ')}`).into(this);
+>>>>>>> December-Fixes
     }
 
     cmdHELP(){
@@ -1095,6 +1364,149 @@ class Chat {
         this.source.connect(parts[0]);
     }
 
+    cmdTAG(parts){
+        if (parts.length === 0){
+            if(this.taggednicks.size > 0) {
+                let tags = 'Tagged nicks\n\n'
+                this.taggednicks.forEach((color, nick) => {
+                    let note = this.taggednotes.has(nick) ? this.taggednotes.get(nick) : '';
+                    tags += `    ${nick} (${color}) ${note}` + '\n'
+                });
+                MessageBuilder.info(tags + '\n').into(this);
+            } else {
+                MessageBuilder.info(`No tagged nicks.`).into(this);
+            }
+            MessageBuilder.info(`Usage. /tag <nick> [<color>, <note>]\n(Available colors: ${tagcolors.join(', ')})`).into(this);
+            return;
+        }
+        if(!nickregex.test(parts[0])) {
+            MessageBuilder.error('Invalid nick - /tag <nick> [<color>, <note>]').into(this);
+            return;
+        }
+        const n = parts[0].toLowerCase();
+        if(n === this.user.username.toLowerCase()){
+            MessageBuilder.error('Cannot tag yourself').into(this);
+            return;
+        }
+        if(!this.users.has(n)) {
+            MessageBuilder.error('User must be present in chat to tag.').into(this);
+            return;
+        }
+
+        let color = ''
+        let note = ''
+        if (parts[1]) {
+            if (tagcolors.indexOf(parts[1]) !== -1) {
+                color = parts[1]
+                note = parts[2] ? parts.slice(2, parts.length).join(' ') : ''
+            } else {
+                color = tagcolors[Math.floor(Math.random()*tagcolors.length)]
+                note = parts[1] ? parts.slice(1, parts.length).join(' ') : ''
+            }
+            if (note.length > 100) {
+                note = note.substr(0, 100)
+            }
+        } else {
+            color = tagcolors[Math.floor(Math.random()*tagcolors.length)]
+        }
+
+
+        this.mainwindow.getlines(`.msg-user[data-username="${n}"]`)
+            .removeClass(Chat.removeClasses('msg-tagged'))
+            .addClass(`msg-tagged msg-tagged-${color}`)
+            .find('.user').attr('title', note);
+
+        this.taggednicks.set(n, color);
+        this.taggednotes.set(n, note);
+        this.settings.set('taggednicks', [...this.taggednicks]);
+        this.settings.set('taggednotes', [...this.taggednotes]);
+        this.applySettings();
+        MessageBuilder.info(`Tagged ${parts[0]} as ${color}`).into(this);
+    }
+
+    cmdUNTAG(parts){
+        if (parts.length === 0){
+            if(this.taggednicks.size > 0) {
+                let tags = 'Tagged nicks\n\n'
+                this.taggednicks.forEach((color, nick) => {
+                    let note = this.taggednotes.has(nick) ? this.taggednotes.get(nick) : '';
+                    tags += `    ${nick} (${color}) ${note}` + '\n'
+                });
+                MessageBuilder.info(tags + '\n').into(this);
+            } else {
+                MessageBuilder.info(`No tagged nicks.`).into(this);
+            }
+            MessageBuilder.info(`Usage. /untag <nick>`).into(this);
+            return;
+        }
+        if(!nickregex.test(parts[0])) {
+            MessageBuilder.error('Invalid nick - /untag <nick> [<color>, <note>]').into(this);
+            return;
+        }
+        const n = parts[0].toLowerCase();
+
+        this.mainwindow.getlines(`.msg-chat[data-username="${n}"]`)
+            .removeClass(Chat.removeClasses('msg-tagged'))
+            .find('.user').removeAttr('title');
+
+        this.taggednicks.delete(n);
+        this.taggednotes.delete(n);
+        this.settings.set('taggednicks', [...this.taggednicks]);
+        this.settings.set('taggednotes', [...this.taggednotes]);
+        this.applySettings();
+        MessageBuilder.info(`Un-tagged ${n}`).into(this);
+    }
+
+    cmdBANINFO(){
+        MessageBuilder.info('Loading ban info ...').into(this);
+        fetch(`${this.config.api.base}/api/chat/me/ban`, {credentials: 'include'})
+            .then(res => res.json())
+            .then(data => {
+                if (data === 'bannotfound') {
+                    MessageBuilder.info(`You have no active bans. Thank you.`).into(this);
+                    return;
+                }
+                const b = Object.assign({}, banstruct, data);
+                const by = b.username ? b.username : 'Chat';
+                const start = moment(b.starttimestamp).format(DATE_FORMATS.FULL);
+                if (!b.endtimestamp) {
+                    MessageBuilder.info(`Permanent ban by ${by} started on ${start}.`).into(this);
+                } else {
+                    const end = moment(b.endtimestamp).calendar();
+                    MessageBuilder.info(`Temporary ban by ${by} started on ${start} and ending by ${end}`).into(this);
+                }
+                if (b.reason) {
+                    const m = MessageBuilder.message(b.reason, new ChatUser(by), b.starttimestamp)
+                    m.historical = true
+                    m.into(this)
+                }
+                MessageBuilder.info(`End of ban information`).into(this);
+            })
+            .catch(() => MessageBuilder.error('Error loading ban info. Check your profile.').into(this));
+    }
+
+    cmdEXIT(){
+        const win = this.getActiveWindow()
+        if(win !== this.mainwindow) {
+            this.windowToFront(this.mainwindow.name)
+            this.removeWindow(win.name)
+        }
+    }
+
+    cmdREPLY(){
+        const win = this.getActiveWindow()
+        const lastuser = win.lastmessage && win.lastmessage.user ? win.lastmessage.user.username : null;
+        const username = this.replyusername !== null && this.replyusername !== '' ? this.replyusername : lastuser;
+        if (username === null) {
+            MessageBuilder.info(`No-one to reply to :(`).into(this);
+        } else {
+            this.input.val(`/w ${username} `)
+        }
+        this.input.focus()
+    }
+
+<<<<<<< HEAD
+=======
     cmdSTALK(parts){
         if (parts[0] && /^\d+$/.test(parts[0])){
             parts[1] = parts[0];
@@ -1115,22 +1527,24 @@ class Chat {
         this.busystalk = true;
         const limit = parts[1] ? parseInt(parts[1]) : 3;
         MessageBuilder.info(`Getting messages for ${[parts[0]]} ...`).into(this);
-        $.ajax({timeout:5000, url: `/api/chat/stalk?username=${encodeURIComponent(parts[0])}&limit=${limit}`})
-            .always(() => {
-                this.nextallowedstalk = moment().add(10, 'seconds');
-                this.busystalk = false;
-            })
-            .done(d => {
+
+        fetch(`${this.config.api.base}/api/chat/stalk?username=${encodeURIComponent(parts[0])}&limit=${limit}`, {credentials: 'include'})
+            .then(res => res.json())
+            .then(d => {
                 if(!d || !d.lines || d.lines.length === 0) {
                     MessageBuilder.info(`No messages for ${parts[0]}`).into(this);
                 } else {
                     const date = moment.utc(d.lines[d.lines.length-1]['timestamp']*1000).local().format(DATE_FORMATS.FULL);
                     MessageBuilder.info(`Stalked ${parts[0]} last seen ${date}`).into(this);
                     d.lines.forEach(a => MessageBuilder.historical(a.text, new ChatUser(d.nick), a.timestamp*1000).into(this))
-                    MessageBuilder.info(`End of stalk (https://dgg.overrustlelogs.net/${parts[0]})`).into(this);
+                    MessageBuilder.info(`End (https://dgg.overrustlelogs.net/${parts[0]})`).into(this);
                 }
             })
-            .fail(() => MessageBuilder.error(`No messages for ${parts[0]} received. Try again later`).into(this));
+            .catch(() => MessageBuilder.error(`No messages for ${parts[0]} received. Try again later`).into(this))
+            .then(() => {
+                this.nextallowedstalk = moment().add(10, 'seconds');
+                this.busystalk = false;
+            });
     }
 
     cmdMENTIONS(parts){
@@ -1154,127 +1568,26 @@ class Chat {
         this.busymentions = true;
         const limit = parts[1] ? parseInt(parts[1]) : 3;
         MessageBuilder.info(`Getting mentions for ${[parts[0]]} ...`).into(this);
-        $.ajax({timeout:5000, url: `/api/chat/mentions?username=${encodeURIComponent(parts[0])}&limit=${limit}`})
-            .always(() => {
-                this.nextallowedmentions = moment().add(10, 'seconds');
-                this.busymentions = false;
-            })
-            .done(d => {
+        fetch(`${this.config.api.base}/api/chat/mentions?username=${encodeURIComponent(parts[0])}&limit=${limit}`, {credentials: 'include'})
+            .then(res => res.json())
+            .then(d => {
                 if(!d || d.length === 0) {
                     MessageBuilder.info(`No mentions for ${parts[0]}`).into(this);
                 } else {
                     const date = moment.utc(d[d.length-1].date*1000).local().format(DATE_FORMATS.FULL);
                     MessageBuilder.info(`Mentions for ${parts[0]} last seen ${date}`).into(this);
                     d.forEach(a => MessageBuilder.historical(a.text, new ChatUser(a.nick), a.date*1000).into(this))
-                    MessageBuilder.info(`End of stalk (https://dgg.overrustlelogs.net/mentions/${parts[0]})`).into(this);
+                    MessageBuilder.info(`End (https://dgg.overrustlelogs.net/mentions/${parts[0]})`).into(this);
                 }
             })
-            .fail(() => MessageBuilder.error(`No mentions for ${parts[0]} received. Try again later`).into(this));
+            .catch(() => MessageBuilder.error(`No mentions for ${parts[0]} received. Try again later`).into(this))
+            .then(() => {
+                this.nextallowedmentions = moment().add(10, 'seconds');
+                this.busymentions = false;
+            });
     }
 
-    cmdTAG(parts){
-        if (parts.length === 0){
-            if(this.taggednicks.size > 0) {
-                MessageBuilder.info(`Tagged nicks: ${[...this.taggednicks.keys()].join(',')}. Available colors: ${tagcolors.join(',')}`).into(this);
-            } else {
-                MessageBuilder.info(`No tagged nicks. Available colors: ${tagcolors.join(',')}`).into(this);
-            }
-            return;
-        }
-        if(!nickregex.test(parts[0])) {
-            MessageBuilder.error('Invalid nick - /tag <nick> <color>').into(this);
-            return;
-        }
-        const n = parts[0].toLowerCase();
-        if(n === this.user.username.toLowerCase()){
-            MessageBuilder.error('Cannot tag yourself').into(this);
-            return;
-        }
-        if(!this.users.has(n)) {
-            MessageBuilder.error('User must be present in chat to tag.').into(this);
-            return;
-        }
-        const color = parts[1] && tagcolors.indexOf(parts[1]) !== -1 ? parts[1] : tagcolors[Math.floor(Math.random()*tagcolors.length)];
-        this.mainwindow.getlines(`.msg-user[data-username="${n}"]`)
-            .removeClass(Chat.removeClasses('msg-tagged'))
-            .addClass(`msg-tagged msg-tagged-${color}`);
-        this.taggednicks.set(n, color);
-        MessageBuilder.info(`Tagged ${parts[0]} as ${color}`).into(this);
-
-        this.settings.set('taggednicks', [...this.taggednicks]);
-        this.applySettings();
-    }
-
-    cmdUNTAG(parts){
-        if (parts.length === 0){
-            if(this.taggednicks.size > 0) {
-                MessageBuilder.info(`Tagged nicks: ${[...this.taggednicks.keys()].join(',')}. Available colors: ${tagcolors.join(',')}`).into(this);
-            } else {
-                MessageBuilder.info(`No tagged nicks. Available colors: ${tagcolors.join(',')}`).into(this);
-            }
-            return;
-        }
-        if(!nickregex.test(parts[0])) {
-            MessageBuilder.error('Invalid nick - /untag <nick> <color>').into(this);
-            return;
-        }
-        const n = parts[0].toLowerCase();
-        this.taggednicks.delete(n);
-        this.mainwindow
-            .getlines(`.msg-chat[data-username="${n}"]`)
-            .removeClass(Chat.removeClasses('msg-tagged'));
-        MessageBuilder.info(`Un-tagged ${n}`).into(this);
-        this.settings.set('taggednicks', [...this.taggednicks]);
-        this.applySettings();
-    }
-
-    cmdBANINFO(){
-        MessageBuilder.info('Loading ban info ...').into(this);
-        $.ajax({url:`/api/chat/me/ban`})
-            .done(d => {
-                if(d === 'bannotfound') {
-                    MessageBuilder.info(`You have no active bans. Thank you.`).into(this);
-                    return;
-                }
-                const b = $.extend({}, banstruct, d);
-                const by = b.username ? b.username : 'Chat';
-                const start = moment(b.starttimestamp).format(DATE_FORMATS.FULL);
-                if(!b.endtimestamp){
-                    MessageBuilder.info(`Permanent ban by ${by} started on ${start}.`).into(this);
-                } else {
-                    const end = moment(b.endtimestamp).calendar();
-                    MessageBuilder.info(`Temporary ban by ${by} started on ${start} and ending by ${end}`).into(this);
-                }
-                if(b.reason){
-                    const m = MessageBuilder.message(b.reason, new ChatUser(by), b.starttimestamp)
-                    m.historical = true
-                    m.into(this)
-                }
-                MessageBuilder.info(`End of ban information`).into(this);
-            })
-            .fail(() => MessageBuilder.error('Error loading ban info. Check your profile.').into(this));
-    }
-
-    cmdEXIT(){
-        const win = this.getActiveWindow()
-        if(win !== this.mainwindow) {
-            this.windowToFront(this.mainwindow.name)
-            this.removeWindow(win.name)
-        }
-    }
-
-    cmdREPLY(){
-        const win = this.getActiveWindow()
-        const lastuser = win.lastmessage && win.lastmessage.user ? win.lastmessage.user.username : null;
-        const username = this.replyusername !== null && this.replyusername !== '' ? this.replyusername : lastuser;
-        if (username === null) {
-            MessageBuilder.info(`No-one to reply to :(`).into(this);
-        } else {
-            this.input.val(`/w ${username} `)
-        }
-        this.input.focus()
-    }
-
+>>>>>>> December-Fixes
     openConversation(nick){
         const normalized = nick.toLowerCase(),
             conv = this.whispers.get(normalized)
@@ -1287,23 +1600,18 @@ class Chat {
         }
     }
 
-    createConversation(conv, nick, normalized){
+    createConversation(conv, nick, normalized) {
         const user = this.users.get(normalized) || new ChatUser(nick),
-               win = new ChatWindow(normalized, 'chat-output-whisper', user.nick).into(this)
+            win = new ChatWindow(normalized, 'chat-output-whisper', user.nick).into(this)
         let once = true
         win.on('show', () => {
-            if(once) {
+            if (once) {
                 once = false
-                MessageBuilder.info(
-                    `Messages between you and ${nick}\r`/*+
-                    `Enter /close to exit this conversation, click the round icons below and center of the chat input to toggle between them, \r`+
-                    `or close them from the whispers menu.\r`+
-                    `Loading messages ...`*/
-                ).into(this, win)
-                $.ajax({url: `/api/messages/usr/${encodeURIComponent(user.nick)}/inbox`})
-                    .fail(() => MessageBuilder.error(`Failed to load messages :(`).into(this, win))
-                    .done(data => {
-                        if(data.length > 0) {
+                MessageBuilder.info(`Messages between you and ${nick}`).into(this, win)
+                fetch(`${this.config.api.base}/api/messages/usr/${encodeURIComponent(user.nick)}/inbox`, {credentials: 'include'})
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.length > 0) {
                             const date = moment(data[0].timestamp).format(DATE_FORMATS.FULL)
                             MessageBuilder.info(`Last message ${date}`).into(this, win)
                             data.reverse().forEach(e => {
@@ -1312,6 +1620,7 @@ class Chat {
                             })
                         }
                     })
+                    .catch(() => MessageBuilder.error(`Failed to load messages :(`).into(this, win))
             }
             conv.unread = 0
             conv.open = true
@@ -1380,6 +1689,32 @@ class Chat {
             nanoseconds += +number;
         });
         return nanoseconds;
+    }
+
+    static loadCss(url) {
+        const link = document.createElement('link');
+        link.href = url;
+        link.type = 'text/css';
+        link.rel = 'stylesheet';
+        link.media = 'screen';
+        document.getElementsByTagName('head')[0].appendChild(link);
+        return link;
+    }
+
+    static reqParam(name, url) {
+        name = name.replace(/[\[\]]/g, "\\$&");
+        url = location || window.location.href || null;
+        const regex = new RegExp("[?&]" + name + "(=([^&#]*)|&|#|$)"),
+            results = regex.exec(url);
+        if (!results || !results[2]) return null;
+        return decodeURIComponent(results[2].replace(/\+/g, " "));
+    }
+
+    static extractHostname(url) {
+        let hostname = url.indexOf("://") > -1? url.split('/')[2]: url.split('/')[0];
+        hostname = hostname.split(':')[0];
+        hostname = hostname.split('?')[0];
+        return hostname;
     }
 
 }

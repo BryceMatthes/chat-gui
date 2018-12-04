@@ -1,9 +1,7 @@
-/* global $ */
-
+import $ from 'jquery'
 import {EmoteFormatter, GreenTextFormatter, HtmlTextFormatter, MentionedUserFormatter,UrlFormatter} from './formatters'
 import {DATE_FORMATS} from './const'
-import UserFeatures from './features'
-import throttle from 'throttle-debounce/throttle'
+import {throttle} from 'throttle-debounce'
 import moment from 'moment'
 
 const MessageTypes = {
@@ -30,6 +28,7 @@ function buildMessageTxt(chat, message){
     formatters.forEach(f => msg = f.format(chat, msg, message))
     return `<span class="text">${msg}</span>`
 }
+<<<<<<< HEAD
 function buildFeatures(user){
     const features = [...user.features || []]
         .filter(e => !UserFeatures.SUBSCRIBER.equals(e))
@@ -85,6 +84,14 @@ function buildFeatures(user){
         })
         .join('');
     return features.length > 0 ? `<span class="features">${features}</span>` : '';
+=======
+function buildFeatures(user, chat){
+    const features = (user.features || [])
+        .filter(e => chat.flairsMap.has(e))
+        .map(e => chat.flairsMap.get(e))
+        .reduce((str, e) => str + `<i class="flair ${e['name']}" title="${e['label']}"></i> `, '');
+    return features !== '' ? `<span class="features">${features}</span>` : '';
+>>>>>>> December-Fixes
 }
 function buildTime(message){
     const datetime = message.timestamp.format(DATE_FORMATS.FULL);
@@ -204,6 +211,7 @@ class ChatUserMessage extends ChatMessage {
         this.historical = false;
         this.target = null;
         this.tag = null;
+        this.title = '';
         this.slashme = false;
         this.mentioned = [];
     }
@@ -239,7 +247,7 @@ class ChatUserMessage extends ChatMessage {
         else if(this.slashme || this.continued)
             ctrl = '';
 
-        const user = buildFeatures(this.user) + ` <a class="user ${this.user.features.join(' ')}">${this.user.username}</a>`;
+        const user = buildFeatures(this.user, chat) + ` <a title="${this.title}" class="user ${this.user.features.join(' ')}">${this.user.username}</a>`;
         return this.wrap(buildTime(this) + ` ${user}<span class="ctrl">${ctrl}</span> ` + buildMessageTxt(chat, this), classes, attr);
     }
 
@@ -304,9 +312,11 @@ class ChatEmoteMessage extends ChatMessage {
 
 export {
     MessageBuilder,
+    MessageTypes,
+    /*
     ChatUIMessage,
     ChatMessage,
     ChatUserMessage,
-    ChatEmoteMessage,
-    MessageTypes
+    ChatEmoteMessage
+    */
 };

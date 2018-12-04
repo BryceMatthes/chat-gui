@@ -1,8 +1,9 @@
-import UserFeatures from './features';
+import $ from 'jquery'
+import UserFeatures from './features'
 
 /** @var Array tlds */
 const tlds = require('../../tld.json');
-const gtld = "(?:"+ tlds.join('|') +")";
+const gtld = "(?:"+ [...tlds].join('|') +")";
 const el = document.createElement('div');
 
 class HtmlTextFormatter {
@@ -17,6 +18,7 @@ class HtmlTextFormatter {
 class EmoteFormatter {
 
     format(chat, str, message=null){
+<<<<<<< HEAD
         if (!this.regex) {
             const emoticons = [
                 ...chat.emoticons,
@@ -26,6 +28,14 @@ class EmoteFormatter {
             this.regex = new RegExp(`(^|\\s)(${emoticons})(?=$|\\s)`, 'gm');
         }
         return str.replace(this.regex, '$1<div title="$2" class="emote $2">$2 </div>');
+=======
+        let regex = (message && message.user) || (!message || !message.user) ? chat.emoteRegexTwitch : chat.emoteRegexNormal;
+        if (regex != null) {
+            return str.replace(regex, '$1<div title="$2" class="emote $2">$2 </div>');
+        } else {
+            return str;
+        }
+>>>>>>> December-Fixes
     }
 
 }
@@ -34,7 +44,12 @@ class GreenTextFormatter {
 
     format(chat, str, message=null){
         if(message.user && str.indexOf('&gt;') === 0){
+<<<<<<< HEAD
             str = `<span class="greentext">${str}</span>`;
+=======
+            if(message.user.hasAnyFeatures(UserFeatures.SUBSCRIBER))
+                str = `<span class="greentext">${str}</span>`;``
+>>>>>>> December-Fixes
         }
         return str;
     }
@@ -136,4 +151,7 @@ export {
     MentionedUserFormatter,
     UrlFormatter
 }
+<<<<<<< HEAD
 
+=======
+>>>>>>> December-Fixes

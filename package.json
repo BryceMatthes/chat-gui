@@ -1,16 +1,22 @@
 {
   "name": "dgg-chat-gui",
-  "version": "2.1.24",
+  "version": "2.2.13",
   "description": "Destiny.gg chat client front-end",
   "main": "destiny",
   "scripts": {
     "tld": "node scripts/tld.js",
     "glue": "node scripts/glue.js",
+<<<<<<< HEAD
     "static": "cp assets/index.html static/index.html && cp assets/chatstreamed.html static/chatstreamed.html && cp -r assets/emotes/emoticons static/img/ && cp -r assets/emotes/emoticons-animated static/img/",
     "build": "npm run tld && webpack && npm run static",
     "build:production": "npm run tld && webpack -p && npm run static",
     "watch": "webpack -w",
     "start": "webpack-dev-server"
+=======
+    "start": "webpack-dev-server --verbose --debug --mode=development",
+    "static": "cp -r assets/emotes/emoticons static/img/ && cp -r assets/emotes/emoticons-animated static/img/ && cp dist/chat.js static/chat.js && cp -r assets/emotes/ static/emotes/",
+    "build": "npm run tld && webpack && npm run static"
+>>>>>>> December-Fixes
   },
   "repository": {
     "type": "git",
@@ -27,9 +33,9 @@
   "license": "SEE LICENSE IN <LICENSE.md>",
   "bugs": "https://github.com/destinygg/website/issues",
   "directories": {
-    "assets": "./assets",
-    "static": "./static"
+    "assets": "./assets"
   },
+<<<<<<< HEAD
   "devDependencies": {
     "autoprefixer": "~8.0.0",
     "babel-core": "~6.26.0",
@@ -59,6 +65,34 @@
     "typescript": "~2.7.2",
     "webpack": "~3.11.0",
     "webpack-dev-server": "~2.11.1"
+=======
+  "dependencies": {
+    "jquery": "~3.3.1",
+    "moment": "~2.22.2",
+    "nanoscroller": "~0.8.7",
+    "normalize.css": "~8.0.1",
+    "throttle-debounce": "~2.0.1",
+    "webpack-manifest-plugin": "^2.0.4",
+    "whatwg-fetch": "^3.0.0"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.1.6",
+    "@babel/polyfill": "^7.0.0",
+    "@babel/preset-env": "^7.1.6",
+    "autoprefixer": "~9.3.1",
+    "babel-loader": "~8.0.4",
+    "css-loader": "^1.0.1",
+    "file-loader": "~2.0.0",
+    "html-loader": "^0.5.5",
+    "node-sass": "~4.10.0",
+    "postcss-loader": "^3.0.0",
+    "sass-loader": "^7.1.0",
+    "spritesmith": "~3.3.1",
+    "style-loader": "~0.23.1",
+    "webpack": "^4.26.0",
+    "webpack-cli": "^3.1.2",
+    "webpack-dev-server": "~3.1.10"
+>>>>>>> December-Fixes
   },
   "engines": {
     "node": "~5.0.2",

@@ -1,11 +1,14 @@
-/* global $, Notification */
+/* global Notification */
 
+import {fetch} from 'whatwg-fetch'
+import {Notification} from './notification'
+import $ from 'jquery'
 import ChatUser from './user'
 import ChatScrollPlugin from './scroll'
 import UserFeatures from './features'
 import EventEmitter from './emitter'
-import debounce from 'throttle-debounce/debounce'
-import {isKeyCode, KEYCODES} from "./const"
+import {debounce} from 'throttle-debounce'
+import {isKeyCode, KEYCODES} from './const'
 
 function buildEmote(emote){
     return `<div class="emote-item"><span title="${emote}" class="emote ${emote}">${emote}</span></div>`
@@ -73,7 +76,7 @@ class ChatMenu extends EventEmitter {
         this.ui.find('.scrollable').each((i, e) => {
             this.scrollplugin = new ChatScrollPlugin(chat, e)
         })
-        this.ui.on('click', '.close,.menu-close', this.hide.bind(this))
+        this.ui.on('click', '.close,.chat-menu-close', this.hide.bind(this))
         this.btn.on('click', e => {
             if (this.visible)
                 chat.input.focus()
@@ -138,15 +141,18 @@ class ChatSettingsMenu extends ChatMenu {
     onSettingsChange(e){
         const val = getSettingValue(e.target)
         const name = e.target.getAttribute('name')
-        if(val !== undefined) {
-            switch(name){
+        if (val !== undefined) {
+            switch (name) {
                 case 'profilesettings':
-                    if(!val && this.chat.authenticated)
-                        $.ajax({url: '/api/chat/me/settings', method:'delete'})
+                    if (!val && this.chat.authenticated)
+                        fetch(`${this.config.api.base}/api/chat/me/settings`, {
+                            credentials: 'include',
+                            method: 'DELETE'
+                        }).catch(console.warn)
                     break;
                 case 'notificationwhisper':
                 case 'notificationhighlight':
-                    if(val)
+                    if (val)
                         this.notificationPermission().then(() => this.updateNotification())
                     break;
             }
@@ -277,7 +283,7 @@ class ChatUserMenu extends ChatMenu {
         const user = this.chat.users.get(username.toLowerCase()),
              label = !user.username || user.username === '' ? 'Anonymous' : user.username,
           features = user.features.length === 0 ? 'nofeature' : user.features.join(' '),
-               usr = $(`<a data-username="${user.username}" class="user ${features}">${label} <i class="fa fa-share-square whisper-nick"></i></a>`)
+               usr = $(`<a data-username="${user.username}" class="user ${features}"><i class="whisper-nick"></i> ${label}</a>`)
         if(sort && this.totalcount > 0) {
             // Insert item in the correct order (instead of resorting the entire list)
             const items = this.container.children('.user').get()
@@ -326,7 +332,10 @@ class ChatEmoteMenu extends ChatMenu {
     constructor(ui, btn, chat) {
         super(ui, btn, chat);
         this.demotes = this.ui.find('#destiny-emotes');
+<<<<<<< HEAD
         this.demotes.append([...this.chat.emoticons].map(buildEmote).join(''));
+=======
+>>>>>>> December-Fixes
         this.ui.on('click', '.emote', e => {
             ChatMenu.closeMenus(chat);
             this.selectEmote(e.currentTarget.innerText);
@@ -338,6 +347,8 @@ class ChatEmoteMenu extends ChatMenu {
             this.chat.input.focus();
         }
         super.show();
+        this.demotes.empty().append(this.chat.emotes.filter(v => !v['twitch']).map(v => v['prefix']).map(buildEmote).join(''));
+        this.temotes.empty().append(this.chat.emotes.filter(v => v['twitch']).map(v => v['prefix']).map(buildEmote).join(''));
     }
 
     selectEmote(emote){
@@ -406,8 +417,9 @@ class ChatWhisperUsers extends ChatMenu {
         const user = this.chat.users.get(nick.toLowerCase()) || new ChatUser(nick)
         this.usersEl.append(`
             <li class="conversation unread-${unread}">
-                <a data-username="${user.nick.toLowerCase()}" title="Hide" class="fa fa-times remove"></a>
-                <a data-username="${user.nick.toLowerCase()}" class="user">${user.nick} <span class="badge">${unread}</span></a>
+                <a style="flex: 1;" data-username="${user.nick.toLowerCase()}" class="user">${user.nick}</a>
+                <span class="badge">${unread}</span>
+                <a data-username="${user.nick.toLowerCase()}" title="Hide" class="remove"></a>
             </li>
         `)
     }
