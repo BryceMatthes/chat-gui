@@ -18,7 +18,7 @@ class HtmlTextFormatter {
 class EmoteFormatter {
 
     format(chat, str, message=null){
-        let regex = (message && message.user && message.user.hasFeature(UserFeatures.TWITCHSUB)) || (!message || !message.user) ? chat.emoteRegexTwitch : chat.emoteRegexNormal;
+        let regex = (message && message.user) || (!message || !message.user) ? chat.emoteRegexTwitch : chat.emoteRegexNormal;
         if (regex != null) {
             return str.replace(regex, '$1<div title="$2" class="emote $2">$2 </div>');
         } else {

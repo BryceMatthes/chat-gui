@@ -1,5 +1,7 @@
 /* global window, document */
 
+import bbdggEmotes from './../../bbdggEmotes.json'
+
 import {fetch} from 'whatwg-fetch'
 import {Notification} from './notification'
 import $ from 'jquery'
@@ -490,17 +492,17 @@ class Chat {
 
     async loadEmotes(){
         Chat.loadCss(`${this.config.cdn.base}/emotes/emotes.css?_=${this.config.cacheKey}`)
-        return fetch(`${this.config.cdn.base}/flairs/flairs.json?_=${this.config.cacheKey}`)
+        return fetch(`${this.config.cdn.base}/emotes/emotes.json?_=${this.config.cacheKey}`)
             .then(res => res.json())
-            .then(json => { this.setFlairs(json) })
+            .then(json => { this.setEmotes(json) })
             .catch(() => {})
     }
 
     async loadFlairs(){
         Chat.loadCss(`${this.config.cdn.base}/flairs/flairs.css?_=${this.config.cacheKey}`)
-        return fetch(`${this.config.cdn.base}/emotes/emotes.json?_=${this.config.cacheKey}`)
+        return fetch(`${this.config.cdn.base}/flairs/flairs.json?_=${this.config.cacheKey}`)
             .then(res => res.json())
-            .then(json => { this.setEmotes(json) })
+            .then(json => { this.setFlairs(json) })
             .catch(() => {})
     }
 
@@ -530,6 +532,10 @@ class Chat {
 
     setEmotes(emotes) {
         this.emotes = emotes;
+	bbdggEmotes["bbdgg"].forEach(function(i){
+		console.log(i);
+		emotes.push({prefix: i})
+	})
         this.emotesMap = new Map()
         emotes.forEach(v => this.emotesMap.set(v.prefix, v))
         const emoticons = emotes.filter(v => !v['twitch']).map(v => v['prefix']).join('|'),

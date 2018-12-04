@@ -7,6 +7,7 @@ module.exports = {
     },
     entry: {
         demo: './assets/demo.js',
+        chat: './assets/chat.js'
     },
     watchOptions: {
         ignored: /node_modules/
