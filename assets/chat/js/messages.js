@@ -28,12 +28,70 @@ function buildMessageTxt(chat, message){
     formatters.forEach(f => msg = f.format(chat, msg, message))
     return `<span class="text">${msg}</span>`
 }
+<<<<<<< HEAD
+function buildFeatures(user){
+    const features = [...user.features || []]
+        .filter(e => !UserFeatures.SUBSCRIBER.equals(e))
+        .sort((a, b) => {
+            let a1,a2;
+
+            a1 = UserFeatures.DGGBDAY.equals(a);
+            a2 = UserFeatures.DGGBDAY.equals(b);
+            if (a1 > a2) return -1; if (a1 < a2) return 1;
+
+            a1 = UserFeatures.SUBSCRIBERT4.equals(a);
+            a2 = UserFeatures.SUBSCRIBERT4.equals(b);
+            if (a1 > a2) return -1; if (a1 < a2) return 1;
+
+            a1 = UserFeatures.SUBSCRIBERT3.equals(a);
+            a2 = UserFeatures.SUBSCRIBERT3.equals(b);
+            if (a1 > a2) return -1; if (a1 < a2) return 1;
+
+            a1 = UserFeatures.SUBSCRIBERT2.equals(a);
+            a2 = UserFeatures.SUBSCRIBERT2.equals(b);
+            if (a1 > a2) return -1; if (a1 < a2) return 1;
+
+            a1 = UserFeatures.SUBSCRIBERT1.equals(a);
+            a2 = UserFeatures.SUBSCRIBERT1.equals(b);
+            if (a1 > a2) return -1; if (a1 < a2) return 1;
+
+            a1 = UserFeatures.SUBSCRIBERT0.equals(a);
+            a2 = UserFeatures.SUBSCRIBERT0.equals(b);
+            if (a1 > a2) return -1; if (a1 < a2) return 1;
+
+            a1 = UserFeatures.BOT2.equals(a) || UserFeatures.BOT.equals(a);
+            a2 = UserFeatures.BOT2.equals(a) || UserFeatures.BOT.equals(b);
+            if (a1 > a2) return -1; if (a1 < a2) return 1;
+
+            a1 = UserFeatures.VIP.equals(a);
+            a2 = UserFeatures.VIP.equals(b);
+            if (a1 > a2) return -1; if (a1 < a2) return 1;
+
+            a1 = UserFeatures.CONTRIBUTOR.equals(a) || UserFeatures.TRUSTED.equals(a);
+            a2 = UserFeatures.CONTRIBUTOR.equals(b) || UserFeatures.TRUSTED.equals(b);
+            if (a1 > a2) return -1; if (a1 < a2) return 1;
+
+            a1 = UserFeatures.NOTABLE.equals(a);
+            a2 = UserFeatures.NOTABLE.equals(b);
+            if (a1 > a2) return -1; if (a1 < a2) return 1;
+
+            if (a > b) return -1; if (a < b) return 1;
+            return 0;
+        })
+        .map(e => {
+            const f = UserFeatures.valueOf(e);
+            return `<i class="flair ${e.toLowerCase()}" title="${f !== null ? f.label : e}"></i>`;
+        })
+        .join('');
+    return features.length > 0 ? `<span class="features">${features}</span>` : '';
+=======
 function buildFeatures(user, chat){
     const features = (user.features || [])
         .filter(e => chat.flairsMap.has(e))
         .map(e => chat.flairsMap.get(e))
         .reduce((str, e) => str + `<i class="flair ${e['name']}" title="${e['label']}"></i> `, '');
     return features !== '' ? `<span class="features">${features}</span>` : '';
+>>>>>>> December-Fixes
 }
 function buildTime(message){
     const datetime = message.timestamp.format(DATE_FORMATS.FULL);
