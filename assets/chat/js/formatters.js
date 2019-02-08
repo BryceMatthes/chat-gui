@@ -18,38 +18,21 @@ class HtmlTextFormatter {
 class EmoteFormatter {
 
     format(chat, str, message=null){
-<<<<<<< HEAD
-        if (!this.regex) {
-            const emoticons = [
-                ...chat.emoticons,
-                ...chat.twitchemotes,
-		...chat.bbdggemotes,
-            ].join('|');
-            this.regex = new RegExp(`(^|\\s)(${emoticons})(?=$|\\s)`, 'gm');
-        }
-        return str.replace(this.regex, '$1<div title="$2" class="emote $2">$2 </div>');
-=======
         let regex = (message && message.user) || (!message || !message.user) ? chat.emoteRegexTwitch : chat.emoteRegexNormal;
         if (regex != null) {
             return str.replace(regex, '$1<div title="$2" class="emote $2">$2 </div>');
         } else {
             return str;
         }
->>>>>>> December-Fixes
     }
 
 }
 
 class GreenTextFormatter {
-
+    //Remove sub requirements
     format(chat, str, message=null){
         if(message.user && str.indexOf('&gt;') === 0){
-<<<<<<< HEAD
-            str = `<span class="greentext">${str}</span>`;
-=======
-            if(message.user.hasAnyFeatures(UserFeatures.SUBSCRIBER))
-                str = `<span class="greentext">${str}</span>`;``
->>>>>>> December-Fixes
+            str = `<span class="greentext">${str}</span>`;``
         }
         return str;
     }
@@ -151,7 +134,3 @@ export {
     MentionedUserFormatter,
     UrlFormatter
 }
-<<<<<<< HEAD
-
-=======
->>>>>>> December-Fixes
