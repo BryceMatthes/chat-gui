@@ -8,7 +8,7 @@ const el = document.createElement('div');
 
 class HtmlTextFormatter {
 
-    format(chat, str, message=null){
+    format(chat, str/*, message=null*/){
         el.textContent = str;
         return el.innerHTML;
     }
@@ -127,10 +127,29 @@ class UrlFormatter {
 
 }
 
+class EmbedUrlFormatter {
+
+    constructor(){
+        try {
+            const location = (window.top || window.parent || window).location
+            this.url = (location.protocol + '//' + location.host + location.pathname + (location.search ? location.search : "")).replace(/\/$/, '')
+        } catch (e) {
+            console.error(e)
+        }
+        this.bigscreenregex = new RegExp(/(^|\s)((#twitch|#twitch-vod|#twitch-clip|#youtube)\/(?:[A-z0-9_\-]{3,64}))\b/, "g")
+    }
+
+    format(chat, str/*, message=null*/) {
+        return str.replace(this.bigscreenregex, '$1<a class="externallink bookmarklink" href="' + this.url + '$2" target="_top">$2</a>')
+    }
+
+}
+
 export {
     EmoteFormatter,
     GreenTextFormatter,
     HtmlTextFormatter,
     MentionedUserFormatter,
-    UrlFormatter
+    UrlFormatter,
+    EmbedUrlFormatter
 }
