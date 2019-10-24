@@ -173,7 +173,7 @@
      width: 32px;
      height: 32px;
 }
- .emote.DCOLON {
+ .emote.D\: {
      background-image: url("DCOLON.png");
      width: 28px;
      height: 28px;
@@ -300,4 +300,4 @@
 .msg-chat .emote.monkaSMEGA{margin-top: -30px;top: 7px;}
 .msg-chat .emote.ComfyDog{margin-top: -32px;top: 7px;}
 .msg-chat .emote.FeelsGimiMan{margin-top: -32px;top: 7px;}
-.msg-chat .emote.DCOLON{margin-top: -30px;top: 7px;}
+.msg-chat .emote.D\:{margin-top: -30px;top: 7px;}
