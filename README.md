@@ -1,6 +1,10 @@
-# Destiny.gg Chat GUI
+You should be using this with the extension builder
 
-Source code for the chat gui [www.destiny.gg](http://www.destiny.gg/)
+[https://github.com/downthecrop/bbdgg](https://github.com/downthecrop/bbdgg)
+
+# BBDGG Chat GUI
+
+Source code for the BBDGG chat gui [https://downthecrop.xyz/bbdgg/](https://downthecrop.xyz/bbdgg/)
 This is a work in progress!
 
 ## License
@@ -16,30 +20,6 @@ npm install
 #### Developing
 
 ```
-npm run start
+npm run build
 ```
 
-### Get params
-`u`: socket url
-default `ws://localhost:9000`
-
-`a`: api url
-default `http://localhost:8181`
-
-`s`: cdn url
-default `http://localhost:8182`
-
-`c`: cache key
-default `empty`
-
-`t`: template
-[EMBED | STREAM] default `embed`
-
-`f`: font scale
-only works on STREAM. [1 ... 10] default `1`
-
-e.g. Connect to destiny.gg, with defaults
-`http://localhost:8282/index.htm?u=wss://www.destiny.gg/ws`
-
-e.g. Connect to destiny.gg with the stream template
-`http://localhost:8282/index.htm?u=wss://destiny.gg/ws&t=stream`

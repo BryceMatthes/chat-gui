@@ -12,5 +12,14 @@
 /scripts/redis/*.hash
 .DS_Store
 *.swp
-
 /.idea
+.env
+
+
+# generated stuff
+assets/emotes/emoticons.scss
+assets/emotes/emoticons.png
+assets/icons/icons.scss
+assets/icons/icons.png
+assets/tld.json
+static
