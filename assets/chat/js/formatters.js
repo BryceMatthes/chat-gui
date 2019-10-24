@@ -8,7 +8,7 @@ const el = document.createElement('div');
 
 class HtmlTextFormatter {
 
-    format(chat, str, message=null){
+    format(chat, str/*, message=null*/){
         el.textContent = str;
         return el.innerHTML;
     }
@@ -18,7 +18,7 @@ class HtmlTextFormatter {
 class EmoteFormatter {
 
     format(chat, str, message=null){
-        let regex = (message && message.user) || (!message || !message.user) ? chat.emoteRegexTwitch : chat.emoteRegexNormal;
+        let regex = (message && message.user && message.user.hasFeature(UserFeatures.TWITCHSUB)) || (!message || !message.user) ? chat.emoteRegexTwitch : chat.emoteRegexNormal;
         if (regex != null) {
             return str.replace(regex, '$1<div title="$2" class="emote $2">$2 </div>');
         } else {
@@ -29,6 +29,7 @@ class EmoteFormatter {
 }
 
 class GreenTextFormatter {
+
     //Remove sub requirements
     format(chat, str, message=null){
         if(message.user && str.indexOf('&gt;') === 0){
@@ -127,10 +128,29 @@ class UrlFormatter {
 
 }
 
+class EmbedUrlFormatter {
+
+    constructor(){
+        try {
+            const location = (window.top || window.parent || window).location
+            this.url = (location.protocol + '//' + location.host + location.pathname + (location.search ? location.search : "")).replace(/\/$/, '')
+        } catch (e) {
+            console.error(e)
+        }
+        this.bigscreenregex = new RegExp(/(^|\s)((#twitch|#twitch-vod|#twitch-clip|#youtube)\/(?:[A-z0-9_\-]{3,64}))\b/, "g")
+    }
+
+    format(chat, str/*, message=null*/) {
+        return str.replace(this.bigscreenregex, '$1<a class="externallink bookmarklink" href="' + this.url + '$2" target="_top">$2</a>')
+    }
+
+}
+
 export {
     EmoteFormatter,
     GreenTextFormatter,
     HtmlTextFormatter,
     MentionedUserFormatter,
-    UrlFormatter
+    UrlFormatter,
+    EmbedUrlFormatter
 }
