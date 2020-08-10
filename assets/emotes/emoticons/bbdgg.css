@@ -216,6 +216,11 @@
      height: 30px;
      background: url('../emoticons-animated/CuckCrab.gif');
 }
+ .emote.catJAM {
+     width: 30px;
+     height: 30px;
+     background: url('../emoticons-animated/catJAM.gif');
+}
  @keyframes MiyanoHype-anim {
      100% {
          background-position: -320px;
@@ -301,3 +306,4 @@
 .msg-chat .emote.ComfyDog{margin-top: -32px;top: 7px;}
 .msg-chat .emote.FeelsGimiMan{margin-top: -32px;top: 7px;}
 .msg-chat .emote.D\:{margin-top: -30px;top: 7px;}
+.msg-chat .emote.catJAM{margin-top: -30px;top: 7px;}
