@@ -31,7 +31,7 @@ class EmoteFormatter {
 class GreenTextFormatter {
     //Remove sub requirements
     format(chat, str, message=null){
-        if(message.user && str.indexOf('&gt;') === 0){
+        if(message.user && str.indexOf('&gt;') === 0){																
             str = `<span class="greentext">${str}</span>`;``
         }
         return str;

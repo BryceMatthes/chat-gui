@@ -1,7 +1,7 @@
 /* global window, document */
 
-import bbdggEmotes from './../../bbdggEmotes.json'
 
+import bbdggEmotes from './../../bbdggEmotes.json'
 import {fetch} from 'whatwg-fetch'
 import {Notification} from './notification'
 import $ from 'jquery'
@@ -20,13 +20,16 @@ import ChatStore from './store'
 import Settings from './settings'
 import ChatWindow from './window'
 import ChatVote from './vote'
+import {isMuteActive, MutedTimer} from './mutedtimer'
 
 const regexslashcmd = /^\/([a-z0-9]+)[\s]?/i
 const regextime = /(\d+(?:\.\d*)?)([a-z]+)?/ig
 const regexsafe = /[\-\[\]\/{}()*+?.\\^$|]/g
 const nickmessageregex = /(?:(?:^|\s)@?)([a-zA-Z0-9_]{3,20})(?=$|\s|[.?!,])/g
 const nickregex = /^[a-zA-Z0-9_]{3,20}$/
-const nsfwnsfl = new RegExp(`\\b(?:NSFL|NSFW)\\b`, 'i')
+const nsfwnsflregex = new RegExp(`\\b(?:NSFL|NSFW)\\b`, 'i')
+const nsfwregex = new RegExp(`\\b(?:NSFW)\\b`, 'i')
+const nsflregex = new RegExp(`\\b(?:NSFL)\\b`, 'i')
 const tagcolors = ['green', 'yellow', 'orange', 'red', 'purple', 'blue', 'sky', 'lime', 'pink', 'black']
 const errorstrings = new Map([
     ['unknown', 'Unknown error, this usually indicates an internal problem :('],
@@ -36,10 +39,8 @@ const errorstrings = new Map([
     ['invalidmsg', 'The message was invalid'],
     ['throttled', 'Throttled! You were trying to send messages too fast'],
     ['duplicate', 'The message is identical to the last one you sent'],
-    ['muted', 'You are muted (subscribing removes mutes). Check your profile for more information.'],
     ['submode', 'The channel is currently in subscriber only mode'],
     ['needbanreason', 'Providing a reason for the ban is mandatory'],
-    ['banned', 'You have been banned (subscribing removes non-permanent bans). Check your profile for more information.'],
     ['privmsgbanned', 'Cannot send private messages while banned'],
     ['requiresocket', 'This chat requires WebSockets'],
     ['toomanyconnections', 'Only 5 concurrent connections allowed'],
@@ -82,6 +83,7 @@ const settingsdefault = new Map([
     ['autocompletehelper', true],
     ['taggedvisibility', false],
     ['hidensfw', false],
+    ['hidensfl', false],
     ['fontscale', 'auto']
 ])
 const commandsinfo = new Map([
@@ -133,12 +135,6 @@ const commandsinfo = new Map([
         desc: 'Unban a user',
         admin: true
     }],
-    ['vote', {
-        desc: 'Start a vote.'
-    }],
-    ['votestop', {
-        desc: 'Stop a vote you started.'
-    }],
     ['timestampformat', {
         desc: 'Set the time format of the chat.'
     }],
@@ -163,6 +159,12 @@ const commandsinfo = new Map([
         desc: 'Return a list of messages where <nick> is mentioned',
         alias: ['m']
     }],
+    ['vote', {
+        desc: 'Start a vote.'
+    }],
+    ['votestop', {
+        desc: 'Stop a vote you started.'
+    }],
 ])
 const banstruct = {
     id: 0,
@@ -183,7 +185,8 @@ class Chat {
             url: '',
             api: {base: ''},
             cdn: {base: ''},
-            cacheKey: ''
+            cacheKey: '',
+            banAppealUrl: null
         }, config)
         this.ui = null;
         this.css = null;
@@ -285,7 +288,7 @@ class Chat {
         this.control.on('VOTE', data => this.cmdVOTE(data));
         this.control.on('V', data => this.cmdVOTE(data));
         this.control.on('VOTESTOP', data => this.cmdVOTESTOP(data));
-	this.control.on('VS', data => this.cmdVOTESTOP(data));
+        this.control.on('VS', data => this.cmdVOTESTOP(data));
         return this;
     }
 
@@ -297,10 +300,7 @@ class Chat {
             this.user = this.addUser(user)
             this.authenticated = true
         }
-        // TODO move this
-        if (this.authenticated) {
-            this.input.focus().attr('placeholder', `Write something ${this.user.username} ...`)
-        }
+        this.setDefaultPlaceholderText()
         return this
     }
 
@@ -344,10 +344,6 @@ class Chat {
             return link['sheet']
         })()
 
-	    this.ui.find('#chat-vote-frame:first').each((i, e) => {
-            this.chatvote = new ChatVote(this, $(e))
-	    });
-
         this.ishidden = (document['visibilityState'] || 'visible') !== 'visible'
         this.output = this.ui.find('#chat-output-frame')
         this.input = this.ui.find('#chat-input-control')
@@ -357,6 +353,11 @@ class Chat {
         this.inputhistory = new ChatInputHistory(this)
         this.userfocus = new ChatUserFocus(this, this.css)
         this.mainwindow = new ChatWindow('main').into(this)
+        this.mutedtimer = new MutedTimer(this)
+
+        this.ui.find('#chat-vote-frame:first').each((i, e) => {
+            this.chatvote = new ChatVote(this, $(e))
+        });
 
         this.windowToFront('main')
 
@@ -479,7 +480,7 @@ class Chat {
         this.loadingscrn.fadeOut(250, () => this.loadingscrn.remove())
         this.mainwindow.updateAndPin()
 
-        this.input.focus().attr('placeholder', `Write something ...`)
+        this.setDefaultPlaceholderText()
         MessageBuilder.status(`Welcome to DGG chat`).into(this)
         return Promise.resolve(this)
     }
@@ -548,9 +549,9 @@ class Chat {
 
     setEmotes(emotes) {
         this.emotes = emotes;
-	bbdggEmotes["bbdgg"].forEach(function(i){
-		emotes.push({prefix: i})
-	})
+     	bbdggEmotes["bbdgg"].forEach(function(i){
+            emotes.push({prefix: i})
+        })
         this.emotesMap = new Map()
         emotes.forEach(v => this.emotesMap.set(v.prefix, v))
         const emoticons = emotes.filter(v => !v['twitch']).map(v => v['prefix']).join('|'),
@@ -628,7 +629,7 @@ class Chat {
             .forEach(key => this.ui.toggleClass(`pref-${key}`, this.settings.get(key)));
 
         // Update maxlines
-        [...this.windows].forEach(w => w.maxlines = this.settings.get('maxlines'));
+        [...this.windows.values()].forEach(w => w.maxlines = this.settings.get('maxlines'));
 
         // Font scaling
         // TODO document.body :(
@@ -668,8 +669,6 @@ class Chat {
 
         // Populate the tag, mentioned users and highlight for this $message.
         if(message.type === MessageTypes.USER){
-            // strip off `/` if message starts with `//`
-            message.message = message.message.substring(0, 2) === '//' ? message.message.substring(1) : message.message
             // check if message is `/me `
             message.slashme = message.message.substring(0, 4).toLowerCase() === '/me '
             // check if this is the current users message
@@ -693,6 +692,7 @@ class Chat {
             );
         }
 
+        // This looks odd, although it would be a correct implementation
         /* else if(win.lastmessage && win.lastmessage.type === message.type && [MessageTypes.ERROR,MessageTypes.INFO,MessageTypes.COMMAND,MessageTypes.STATUS].indexOf(message.type)){
             message.continued = true
         }*/
@@ -744,6 +744,13 @@ class Chat {
             if(win.locked()) win.unlock()
             this.redrawWindowIndicators()
         }
+
+        if (win.name === 'main' && this.mutedtimer.ticking) {
+            this.mutedtimer.updatePlaceholderText()
+        } else {
+            this.setDefaultPlaceholderText()
+        }
+
         return win
     }
 
@@ -817,9 +824,14 @@ class Chat {
     }
 
     ignored(nick, text=null){
-        return this.ignoring.has(nick.toLowerCase()) ||
-            (text !== null && this.settings.get('ignorementions') && this.ignoreregex && this.ignoreregex.test(text)) ||
-            (text !== null && this.settings.get('hidensfw') && nsfwnsfl.test(text));
+        let ignore = this.ignoring.has(nick.toLowerCase());
+        if (!ignore && text !== null) {
+            return (this.settings.get('ignorementions') && this.ignoreregex && this.ignoreregex.test(text))
+                || (this.settings.get('hidensfw') && this.settings.get('hidensfl') && nsfwnsflregex.test(text))
+                || (this.settings.get('hidensfl') && nsflregex.test(text))
+                || (this.settings.get('hidensfw') && nsfwregex.test(text))
+        }
+        return ignore
     }
 
     ignore(nick, ignore=true){
@@ -841,6 +853,11 @@ class Chat {
         if(window.getSelection().isCollapsed && !this.input.is(':focus')) {
             this['debounceFocus'](this);
         }
+    }
+
+    setDefaultPlaceholderText() {
+        const placeholderText = this.authenticated ? `Write something ${this.user.username} ...` : `Write something ...`
+        this.input.attr('placeholder', placeholderText)
     }
 
     /**
@@ -892,16 +909,13 @@ class Chat {
         const normalized = data.nick.toLowerCase();
         if (this.users.has(normalized)){
             this.users.delete(normalized);
-            this.autocomplete.remove(data.nick);
+            this.autocomplete.remove(data.nick, true);
         }
     }
 
     onMSG(data){
-
-        const textonly = Chat.remoteSlashCmdFromText(data.data)
-        const isemote = this.emotePrefixes.has(textonly)
+        const textonly = Chat.removeSlashCmdFromText(data.data)
         const usr = this.users.get(data.nick.toLowerCase())
-        
         // VOTE START
         if (this.chatvote && !this.backlogloading) {
             if (this.chatvote.isVoteStarted()) {
@@ -932,9 +946,8 @@ class Chat {
         }
         // VOTE END
 
-
         const win = this.mainwindow
-        if(isemote && win.lastmessage !== null && Chat.extractTextOnly(win.lastmessage.message) === textonly){
+        if(win.lastmessage !== null && this.emotePrefixes.has(textonly) && Chat.removeSlashCmdFromText(win.lastmessage.message) === textonly){
             if(win.lastmessage.type === MessageTypes.EMOTE) {
                 this.mainwindow.lock()
                 win.lastmessage.incEmoteCount()
@@ -944,14 +957,21 @@ class Chat {
                 MessageBuilder.emote(textonly, data.timestamp, 2).into(this)
             }
         } else if(!this.resolveMessage(data.nick, data.data)){
-            MessageBuilder.message(data.data, this.users.get(data.nick.toLowerCase()), data.timestamp).into(this)
+            MessageBuilder.message(data.data, usr, data.timestamp).into(this)
         }
     }
 
     onMUTE(data){
-        // data.data is the nick which has been banned, no info about duration
+        // data.data is the nick which has been banned
         if(this.user.username.toLowerCase() === data.data.toLowerCase()) {
             MessageBuilder.command(`You have been muted by ${data.nick}.`, data.timestamp).into(this)
+
+            // Every cached mute message calls `onMUTE()`. We perform this check
+            // to avoid setting the timer for mutes that have already expired.
+            if (isMuteActive(data)) {
+                this.mutedtimer.setTimer(data.duration)
+                this.mutedtimer.startTimer()
+            }
         } else {
             MessageBuilder.command(`${data.data} muted by ${data.nick}.`, data.timestamp).into(this)
         }
@@ -961,6 +981,8 @@ class Chat {
     onUNMUTE(data){
         if(this.user.username.toLowerCase() === data.data.toLowerCase()) {
             MessageBuilder.command(`You have been unmuted by ${data.nick}.`, data.timestamp).into(this)
+
+            this.mutedtimer.stopTimer()
         } else {
             MessageBuilder.command(`${data.data} unmuted by ${data.nick}.`, data.timestamp).into(this)
         }
@@ -980,18 +1002,43 @@ class Chat {
     onUNBAN(data){
         if(this.user.username.toLowerCase() === data.data.toLowerCase()) {
             MessageBuilder.command(`You have been unbanned by ${data.nick}.`, data.timestamp).into(this)
+
+            // Unbanning a user unmutes them, too.
+            this.mutedtimer.stopTimer()
         } else {
             MessageBuilder.command(`${data.data} unbanned by ${data.nick}.`, data.timestamp).into(this)
         }
     }
 
-    // NOTE this is an event that the chat server sends `ERR "$error"`
     // not to be confused with an error the chat.source may send onSOCKETERROR.
     onERR(data){
-        if(data === 'toomanyconnections' || data === 'banned') {
+        const desc = data.description
+        if(desc === 'toomanyconnections' || desc === 'banned') {
             this.source.retryOnDisconnect = false
         }
-        MessageBuilder.error(errorstrings.get(data) || data).into(this, this.getActiveWindow())
+
+        let messageText = ''
+
+        switch (desc) {
+            case 'banned':
+                messageText = 'You have been banned (subscribing removes non-permanent bans). Check your profile for more information.'
+
+                // Append ban appeal hint if a URL was provided.
+                if (this.config.banAppealUrl) {
+                    messageText += ` Visit ${this.config.banAppealUrl} to appeal.`
+                }
+                break;
+            case 'muted':
+                this.mutedtimer.setTimer(data.muteTimeLeft)
+                this.mutedtimer.startTimer()
+
+                messageText = `You are temporarily muted! You can chat again ${this.mutedtimer.getReadableDuration()}. Subscribe to remove the mute immediately.`
+                break;
+            default:
+                messageText = errorstrings.get(desc) || desc    
+        }
+
+        MessageBuilder.error(messageText).into(this, this.getActiveWindow())
     }
 
     onSOCKETERROR(e){
@@ -1010,8 +1057,8 @@ class Chat {
         // TODO kind of ... hackey
         if (data.data === 'reload') {
             if (!this.backlogloading) {
-                const retryMilli = Math.floor(Math.random() * 4000) + 4000
-                setTimeout(() => window.location.reload(false), retryMilli)
+                const retryMilli = Math.floor(Math.random() * 30000) + 4000
+                setTimeout(() => window.location.reload(true), retryMilli)
                 MessageBuilder.broadcast(`Restart incoming in ${Math.round(retryMilli/1000)} seconds ...`).into(this)
             }
         } else {
@@ -1027,24 +1074,24 @@ class Chat {
 
     onPRIVMSG(data) {
         const normalized = data.nick.toLowerCase()
-        if (!this.ignored(normalized, data.data)){
+        if (!this.ignored(normalized, data.data)) {
 
-            if(!this.whispers.has(normalized))
-                this.whispers.set(normalized, {nick:data.nick, unread:0, open: false})
+            if (!this.whispers.has(normalized))
+                this.whispers.set(normalized, {nick: data.nick, unread: 0, open: false})
 
             const conv = this.whispers.get(normalized),
-                  user = this.users.get(normalized) || new ChatUser(data.nick),
-             messageid = data.hasOwnProperty('messageid') ? data['messageid'] : null
+                user = this.users.get(normalized) || new ChatUser(data.nick),
+                messageid = data.hasOwnProperty('messageid') ? data['messageid'] : null
 
-            if(this.settings.get('showhispersinchat'))
+            if (this.settings.get('showhispersinchat'))
                 MessageBuilder.whisper(data.data, user, this.user.username, data.timestamp, messageid).into(this)
-            if(this.settings.get('notificationwhisper') && this.ishidden)
+            if (this.settings.get('notificationwhisper') && this.ishidden)
                 Chat.showNotification(`${data.nick} whispered ...`, data.data, data.timestamp, this.settings.get('notificationtimeout'))
 
             const win = this.getWindow(normalized)
-            if(win)
+            if (win)
                 MessageBuilder.historical(data.data, user, data.timestamp).into(this, win)
-            if(win === this.getActiveWindow()) {
+            if (win === this.getActiveWindow()) {
                 fetch(`${this.config.api.base}/api/messages/msg/${messageid}/open`, {
                     credentials: 'include',
                     method: 'POST',
@@ -1068,7 +1115,7 @@ class Chat {
                 matches = raw.match(regexslashcmd),
                 iscommand = matches && matches.length > 1,
                 ismecmd = iscommand && matches[1].toLowerCase() === 'me',
-                textonly = Chat.remoteSlashCmdFromText(raw);
+                textonly = Chat.removeSlashCmdFromText(raw);
 
             // COMMAND
             if (iscommand && !ismecmd) {
@@ -1132,8 +1179,6 @@ class Chat {
             }
         }
     }
-
-
 
     // TODO cmdSend instead?
     cmdVOTE(parts) {
@@ -1248,10 +1293,13 @@ class Chat {
                 nick   : parts[0],
                 reason : parts.slice(2, parts.length).join(' ')
             };
-            if(command === 'IPBAN' || /^perm/i.test(parts[1]))
-                payload.ispermanent = (command === 'IPBAN' || /^perm/i.test(parts[1]));
+            if(/^perm/i.test(parts[1]))
+                payload.ispermanent = true;
             else
                 payload.duration = Chat.parseTimeInterval(parts[1]);
+
+            payload.banip = command === 'IPBAN';
+
             this.source.send('BAN', payload);
         }
     }
@@ -1284,8 +1332,8 @@ class Chat {
             MessageBuilder.info(`Invalid argument - /${command} is expecting a number`).into(this);
         } else {
             this.settings.set('maxlines', newmaxlines);
-            MessageBuilder.info(`Current maximum lines: ${this.settings.get('maxlines')}`).into(this);
             this.applySettings();
+            MessageBuilder.info(`Set maximum lines to ${newmaxlines}`).into(this);
         }
     }
 
@@ -1613,11 +1661,7 @@ class Chat {
         win.on('hide', () => conv.open = false)
     }
 
-    static extractTextOnly(msg){
-        return (msg.substring(0, 4).toLowerCase() === '/me ' ? msg.substring(4) : msg).trim();
-    }
-
-    static remoteSlashCmdFromText(msg){
+    static removeSlashCmdFromText(msg){
         return msg.replace(regexslashcmd, '').trim();
     }
 
