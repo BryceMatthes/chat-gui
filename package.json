@@ -6,17 +6,9 @@
   "scripts": {
     "tld": "node scripts/tld.js",
     "glue": "node scripts/glue.js",
-<<<<<<< HEAD
-    "static": "cp assets/index.html static/index.html && cp assets/chatstreamed.html static/chatstreamed.html && cp -r assets/emotes/emoticons static/img/ && cp -r assets/emotes/emoticons-animated static/img/",
-    "build": "npm run tld && webpack && npm run static",
-    "build:production": "npm run tld && webpack -p && npm run static",
-    "watch": "webpack -w",
-    "start": "webpack-dev-server"
-=======
     "start": "webpack-dev-server --verbose --debug --mode=development",
     "static": "cp -r assets/emotes/emoticons static/img/ && cp -r assets/emotes/emoticons-animated static/img/ && cp dist/chat.js static/chat.js && cp -r assets/emotes/ static/emotes/",
     "build": "npm run tld && webpack && npm run static"
->>>>>>> December-Fixes
   },
   "repository": {
     "type": "git",
@@ -35,37 +27,6 @@
   "directories": {
     "assets": "./assets"
   },
-<<<<<<< HEAD
-  "devDependencies": {
-    "autoprefixer": "~8.0.0",
-    "babel-core": "~6.26.0",
-    "babel-loader": "~7.1.2",
-    "babel-preset-es2015": "~6.24.1",
-    "clean-webpack-plugin": "~0.1.18",
-    "core-js": "~2.5.3",
-    "css-loader": "~0.28.9",
-    "dotenv": "^5.0.1",
-    "extract-text-webpack-plugin": "~3.0.2",
-    "file-loader": "^1.1.7",
-    "font-awesome": "~4.7.0",
-    "jquery": "~3.3.1",
-    "jquery-validation": "~1.17.0",
-    "json-loader": "~0.5.7",
-    "moment": "~2.20.1",
-    "nanoscroller": "~0.8.7",
-    "node-sass": "~4.7.2",
-    "normalize.css": "~8.0.0",
-    "postcss-loader": "~2.1.0",
-    "sass-loader": "~6.0.6",
-    "spritesmith": "~3.3.0",
-    "style-loader": "~0.20.2",
-    "throttle-debounce": "~1.0.1",
-    "timestring": "^5.0.0",
-    "ts-loader": "~3.5.0",
-    "typescript": "~2.7.2",
-    "webpack": "~3.11.0",
-    "webpack-dev-server": "~2.11.1"
-=======
   "dependencies": {
     "jquery": "~3.3.1",
     "moment": "~2.22.2",
@@ -76,14 +37,18 @@
     "whatwg-fetch": "^3.0.0"
   },
   "devDependencies": {
-    "@babel/core": "^7.1.6",
-    "@babel/polyfill": "^7.0.0",
-    "@babel/preset-env": "^7.1.6",
+    "@babel/core": "^7.11.6",
+    "@babel/preset-env": "^7.11.5",
     "autoprefixer": "~9.3.1",
-    "babel-loader": "~8.0.4",
+    "babel-core": "~7.0.0-0",
+    "babel-loader": "^7.1.5",
+    "babel-preset-es2015": "~6.24.1",
+    "clean-webpack-plugin": "^1.0.1",
     "css-loader": "^1.0.1",
+    "dotenv": "^6.2.0",
     "file-loader": "~2.0.0",
     "html-loader": "^0.5.5",
+    "mini-css-extract-plugin": "^0.10.0",
     "node-sass": "~4.10.0",
     "postcss-loader": "^3.0.0",
     "sass-loader": "^7.1.0",
@@ -92,7 +57,6 @@
     "webpack": "^4.26.0",
     "webpack-cli": "^3.1.2",
     "webpack-dev-server": "~3.1.10"
->>>>>>> December-Fixes
   },
   "engines": {
     "node": "~5.0.2",
