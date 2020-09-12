@@ -1,6 +1,7 @@
-<<<<<<< HEAD
-import Chat from './chat/js/chat';
 import emotes from './emotes.json';
+import {fetch} from 'whatwg-fetch'
+import Chat from './chat/js/chat'
+import $ from 'jquery'
 
 let cdnData = ($("#chat-include").data());
 
@@ -26,10 +27,6 @@ fetch(cdnData.cdn+'/emotes/emotes.json?_='+cdnData.cacheKey)
 		.connect(WEBSOCKET_URI)
 	)
 });
-=======
-import {fetch} from 'whatwg-fetch'
-import Chat from './chat/js/chat'
-import $ from 'jquery'
 
 const script = document.getElementById('chat-include')
 const chat = new Chat({
@@ -50,4 +47,3 @@ chat.withGui(require('./views/embed.html'))
 
 // Keep the website session alive.
 setInterval(() => fetch(`${chat.config.api.base}/ping`).catch(console.warn), 10*60*1000)
->>>>>>> December-Fixes
