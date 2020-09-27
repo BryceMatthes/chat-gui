@@ -1,6 +1,5 @@
 /* global window, document */
 
-
 import bbdggEmotes from './../../bbdggEmotes.json'
 import {fetch} from 'whatwg-fetch'
 import {Notification} from './notification'
@@ -11,7 +10,7 @@ import moment from 'moment'
 import EventEmitter from './emitter'
 import ChatSource from './source'
 import ChatUser from './user'
-import {MessageBuilder, MessageTypes} from './messages'
+import {MessageBuilder, MessageTypes, ChatMessage} from './messages'
 import {ChatMenu, ChatUserMenu, ChatWhisperUsers, ChatEmoteMenu, ChatSettingsMenu} from './menus'
 import ChatAutoComplete from './autocomplete'
 import ChatInputHistory from './history'
@@ -19,7 +18,7 @@ import ChatUserFocus from './focus'
 import ChatStore from './store'
 import Settings from './settings'
 import ChatWindow from './window'
-import ChatVote from './vote'
+import {ChatVote, parseQuestionAndTime} from './vote'
 import {isMuteActive, MutedTimer} from './mutedtimer'
 
 const regexslashcmd = /^\/([a-z0-9]+)[\s]?/i
@@ -165,6 +164,9 @@ const commandsinfo = new Map([
     ['votestop', {
         desc: 'Stop a vote you started.'
     }],
+    ['svote', {
+        desc: 'Start a sub-weighted vote.'
+    }],
 ])
 const banstruct = {
     id: 0,
@@ -249,6 +251,9 @@ class Chat {
         this.source.on('BROADCAST', data => this.onBROADCAST(data));
         this.source.on('PRIVMSGSENT', data => this.onPRIVMSGSENT(data));
         this.source.on('PRIVMSG', data => this.onPRIVMSG(data));
+        this.source.on('VOTE', data => this.onVOTE(data));
+        this.source.on('VOTESTOP', data => this.onVOTESTOP(data));
+        this.source.on('VOTECAST', data => this.onVOTECAST(data));
 
         this.control.on('SEND', data => this.cmdSEND(data));
         this.control.on('HINT', data => this.cmdHINT(data));
@@ -285,8 +290,9 @@ class Chat {
         this.control.on('M', data => this.cmdMENTIONS(data));
         this.control.on('STALK', data => this.cmdSTALK(data));
         this.control.on('S', data => this.cmdSTALK(data));
-        this.control.on('VOTE', data => this.cmdVOTE(data));
-        this.control.on('V', data => this.cmdVOTE(data));
+        this.control.on('VOTE', data => this.cmdVOTE(data, 'VOTE'));
+        this.control.on('SVOTE', data => this.cmdVOTE(data, 'SVOTE'));
+        this.control.on('V', data => this.cmdVOTE(data, 'VOTE'));
         this.control.on('VOTESTOP', data => this.cmdVOTESTOP(data));
         this.control.on('VS', data => this.cmdVOTESTOP(data));
         return this;
@@ -509,17 +515,17 @@ class Chat {
 
     async loadEmotes(){
         Chat.loadCss(`${this.config.cdn.base}/emotes/emotes.css?_=${this.config.cacheKey}`)
-        return fetch(`${this.config.cdn.base}/emotes/emotes.json?_=${this.config.cacheKey}`)
+        return fetch(`${this.config.cdn.base}/flairs/flairs.json?_=${this.config.cacheKey}`)
             .then(res => res.json())
-            .then(json => { this.setEmotes(json) })
+            .then(json => { this.setFlairs(json) })
             .catch(() => {})
     }
 
     async loadFlairs(){
         Chat.loadCss(`${this.config.cdn.base}/flairs/flairs.css?_=${this.config.cacheKey}`)
-        return fetch(`${this.config.cdn.base}/flairs/flairs.json?_=${this.config.cacheKey}`)
+        return fetch(`${this.config.cdn.base}/emotes/emotes.json?_=${this.config.cacheKey}`)
             .then(res => res.json())
-            .then(json => { this.setFlairs(json) })
+            .then(json => { this.setEmotes(json) })
             .catch(() => {})
     }
 
@@ -548,10 +554,12 @@ class Chat {
     }
 
     setEmotes(emotes) {
+		bbdggEmotes["bbdgg"].forEach(function(i){
+			if(emotes.findIndex(e=>e.prefix==i)<0){
+				emotes.push({prefix:i})
+			}
+		})
         this.emotes = emotes;
-     	bbdggEmotes["bbdgg"].forEach(function(i){
-            emotes.push({prefix: i})
-        })
         this.emotesMap = new Map()
         emotes.forEach(v => this.emotesMap.set(v.prefix, v))
         const emoticons = emotes.filter(v => !v['twitch']).map(v => v['prefix']).join('|'),
@@ -916,35 +924,24 @@ class Chat {
     onMSG(data){
         const textonly = Chat.removeSlashCmdFromText(data.data)
         const usr = this.users.get(data.nick.toLowerCase())
-        // VOTE START
-        if (this.chatvote && !this.backlogloading) {
-            if (this.chatvote.isVoteStarted()) {
-                if (this.chatvote.isMsgVoteStopFmt(data.data)) {
-                    if (this.chatvote.vote.user === usr.username) {
-                        this.chatvote.endVote()
-                    }
-                    return;
-                } else if (this.chatvote.isMsgVoteCastFmt(textonly)) {
-                    // NOTE method returns false, if the GUI is hidden
-                    if (this.chatvote.castVote(textonly, usr.username)) {
-                        if (usr.username === this.user.username) {
-                            this.chatvote.markVote(textonly, usr.username)
-                        }
-                    }
-                    return;
-                }
-            } else if (this.chatvote.isMsgVoteStartFmt(data.data) && this.chatvote.canUserStartVote(usr)) {
-                if (!this.chatvote.startVote(textonly, usr.username)) {
-                    if (this.user.username === usr.username) {
-                        MessageBuilder.error('Your vote failed to start. See console for logs.')
-                    }
-                } else {
-                    MessageBuilder.info(`A vote has been started. Type ${this.chatvote.vote.totals.map((a, i) => i+1).join(' or ')} in chat to participate.`).into(this)
-                }
-                return;
+
+        // Checking if old messages are loading avoids starting votes for cached
+        // `/vote` commands.
+        if (!this.backlogloading) {
+            // Voting is processed entirely in clients through messages with
+            // type `MSG`, but we emit `VOTE`, `VOTESTOP`, and `VOTECAST`
+            // events to mimic server involvement.
+            if (this.chatvote.isMsgVoteStartFmt(data.data)) {
+                this.source.emit('VOTE', data)
+                return
+            } else if (this.chatvote.isMsgVoteStopFmt(data.data)) {
+                this.source.emit('VOTESTOP', data)
+                return
+            } else if (this.chatvote.isVoteStarted() && this.chatvote.isMsgVoteCastFmt(data.data)) {
+                this.source.emit(`VOTECAST`, data)
+                return
             }
         }
-        // VOTE END
 
         const win = this.mainwindow
         if(win.lastmessage !== null && this.emotePrefixes.has(textonly) && Chat.removeSlashCmdFromText(win.lastmessage.message) === textonly){
@@ -958,6 +955,40 @@ class Chat {
             }
         } else if(!this.resolveMessage(data.nick, data.data)){
             MessageBuilder.message(data.data, usr, data.timestamp).into(this)
+        }
+    }
+
+    onVOTE(data) {
+        const usr = this.users.get(data.nick.toLowerCase())
+        if (this.chatvote.isVoteStarted() || !this.chatvote.canUserStartVote(usr)) {
+            return
+        }
+
+        if (this.chatvote.startVote(data.data, usr)) {
+            (new ChatMessage(this.chatvote.voteStartMessage(), null, MessageTypes.INFO, true)).into(this)
+        }
+    }
+
+    onVOTESTOP(data) {
+        const usr = this.users.get(data.nick.toLowerCase())
+        if (!this.chatvote.isVoteStarted() || !this.chatvote.canUserStopVote(usr)) {
+            return
+        }
+
+        this.chatvote.endVote()
+    }
+
+    onVOTECAST(data) {
+        const usr = this.users.get(data.nick.toLowerCase())
+        if (!this.chatvote.canVote(usr)) {
+            return
+        }
+
+        // NOTE method returns false, if the GUI is hidden
+        if (this.chatvote.castVote(data.data, usr)) {
+            if (data.nick === this.user.username) {
+                this.chatvote.markVote(data.data)
+            }
         }
     }
 
@@ -1017,28 +1048,31 @@ class Chat {
             this.source.retryOnDisconnect = false
         }
 
-        let messageText = ''
+        let message;
 
         switch (desc) {
             case 'banned':
-                messageText = 'You have been banned (subscribing removes non-permanent bans). Check your profile for more information.'
+                let messageText = 'You have been banned! Check your profile for more information. <a target="_blank" class="externallink" href="/subscribe" rel="nofollow">Subscribing</a> or <a target="_blank" class="externallink" href="/donate" rel="nofollow">donating</a> removes non-permanent bans.'
 
                 // Append ban appeal hint if a URL was provided.
                 if (this.config.banAppealUrl) {
-                    messageText += ` Visit ${this.config.banAppealUrl} to appeal.`
+                    messageText += ` Visit <a target="_blank" class="externallink" href="${this.config.banAppealUrl}" rel="nofollow">this page</a> to appeal.`
                 }
+
+                // Use an unformatted `ChatMessage` to preserve the message's embedded HTML.
+                message = new ChatMessage(messageText, null, MessageTypes.ERROR, true);
                 break;
             case 'muted':
                 this.mutedtimer.setTimer(data.muteTimeLeft)
                 this.mutedtimer.startTimer()
 
-                messageText = `You are temporarily muted! You can chat again ${this.mutedtimer.getReadableDuration()}. Subscribe to remove the mute immediately.`
+                message = MessageBuilder.error(`You are temporarily muted! You can chat again ${this.mutedtimer.getReadableDuration()}. Subscribe to remove the mute immediately.`)
                 break;
             default:
-                messageText = errorstrings.get(desc) || desc    
+                message = MessageBuilder.error(errorstrings.get(desc) || desc)
         }
 
-        MessageBuilder.error(messageText).into(this, this.getActiveWindow())
+        message.into(this, this.getActiveWindow())
     }
 
     onSOCKETERROR(e){
@@ -1148,7 +1182,7 @@ class Chat {
             }
             // VOTE
             else if (this.chatvote.isVoteStarted() && this.chatvote.isMsgVoteCastFmt(textonly)) {
-                if (this.chatvote.canVote(this.user.username)) {
+                if (this.chatvote.canVote(this.user)) {
                     MessageBuilder.info(`Your vote has been cast!`).into(this)
                     this.source.send('MSG', {data: raw})
                     this.input.val('')
@@ -1180,36 +1214,40 @@ class Chat {
         }
     }
 
-    // TODO cmdSend instead?
-    cmdVOTE(parts) {
-        if (!this.chatvote.isVoteStarted()) {
-            if (this.chatvote.canUserStartVote(this.user)) {
-                const str = '/vote ' + parts.join(' ')
-                this.unresolved.unshift(MessageBuilder.message(str, this.user))
-                this.source.send('MSG', {data: str})
-                // TODO if the chat isn't connected, the user has no warning of this action failing
-            } else {
-                MessageBuilder.error('You do not have permission to start a vote.').into(this)
-            }
-        } else {
-            MessageBuilder.error('Vote already started.').into(this)
+    cmdVOTE(parts, command) {
+        const slashCommand = `/${command.toLowerCase()}`
+        const textOnly = parts.join(' ')
+
+        try {
+            // Assume the command's format is invalid if an exception is thrown.
+            parseQuestionAndTime(textOnly)
+        } catch {
+            MessageBuilder.info(`Usage: ${slashCommand} <question>? <option 1> or <option 2>[ or <option 3>[ or <option 4> ... [ or <option n>]]][ <time>]`).into(this);
+            return
         }
+        if (this.chatvote.isVoteStarted()) {
+            MessageBuilder.error('Vote already started.').into(this)
+            return
+        } else if (!this.chatvote.canUserStartVote(this.user)) {
+            MessageBuilder.error('You do not have permission to start a vote.').into(this)
+            return
+        }
+
+        this.source.send('MSG', {data: `${slashCommand} ${textOnly}`})
+        // TODO if the chat isn't connected, the user has no warning of this action failing
     }
 
-    // TODO cmdSend instead?
     cmdVOTESTOP() {
-        if (this.chatvote.isVoteStarted()) {
-            if (this.chatvote.canUserStartVote(this.user) && this.chatvote.vote.user === this.user.nick) {
-                const str = '/votestop'
-                this.unresolved.unshift(MessageBuilder.message(str, this.user))
-                this.source.send('MSG', {data: str})
-                // TODO if the chat isn't connected, the user has no warning of this action failing
-            } else {
-                MessageBuilder.error('You do not have permission to stop this vote.').into(this)
-            }
-        } else {
+        if (!this.chatvote.isVoteStarted()) {
             MessageBuilder.error('No vote started.').into(this)
+            return
+        } else if (!this.chatvote.canUserStopVote(this.user)) {
+            MessageBuilder.error('You do not have permission to stop this vote.').into(this)
+            return
         }
+
+        this.source.send('MSG', {data: '/votestop'})
+        // TODO if the chat isn't connected, the user has no warning of this action failing
     }
 
     cmdEMOTES(){
